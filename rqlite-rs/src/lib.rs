@@ -4,6 +4,7 @@ pub mod query_result;
 pub mod response;
 pub use client::{RqliteClient, RqliteClientBuilder};
 pub use rqlite_rs_core::*;
+pub mod node;
 
 #[cfg(feature = "macros")]
 pub use rqlite_rs_macros::*;
