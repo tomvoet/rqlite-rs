@@ -2,7 +2,7 @@ use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[serde(untagged)]
-pub enum RqLiteArgument {
+pub enum RqliteArgument {
     String(String),
     I64(i64),
     F64(f64),
@@ -10,57 +10,57 @@ pub enum RqLiteArgument {
     Bool(bool),
 }
 
-impl RqLiteArgument {}
+impl RqliteArgument {}
 
-pub trait RqLiteArgumentRaw {
-    fn encode(&self) -> RqLiteArgument;
+pub trait RqliteArgumentRaw {
+    fn encode(&self) -> RqliteArgument;
 }
 
-impl RqLiteArgumentRaw for i64 {
-    fn encode(&self) -> RqLiteArgument {
-        RqLiteArgument::I64(self.to_owned())
+impl RqliteArgumentRaw for i64 {
+    fn encode(&self) -> RqliteArgument {
+        RqliteArgument::I64(self.to_owned())
     }
 }
 
-impl RqLiteArgumentRaw for usize {
-    fn encode(&self) -> RqLiteArgument {
-        RqLiteArgument::I64(*self as i64)
+impl RqliteArgumentRaw for usize {
+    fn encode(&self) -> RqliteArgument {
+        RqliteArgument::I64(*self as i64)
     }
 }
 
-impl RqLiteArgumentRaw for f64 {
-    fn encode(&self) -> RqLiteArgument {
-        RqLiteArgument::F64(self.to_owned())
+impl RqliteArgumentRaw for f64 {
+    fn encode(&self) -> RqliteArgument {
+        RqliteArgument::F64(self.to_owned())
     }
 }
 
-impl RqLiteArgumentRaw for f32 {
-    fn encode(&self) -> RqLiteArgument {
-        RqLiteArgument::F32(self.to_owned())
+impl RqliteArgumentRaw for f32 {
+    fn encode(&self) -> RqliteArgument {
+        RqliteArgument::F32(self.to_owned())
     }
 }
 
-impl RqLiteArgumentRaw for bool {
-    fn encode(&self) -> RqLiteArgument {
-        RqLiteArgument::Bool(self.to_owned())
+impl RqliteArgumentRaw for bool {
+    fn encode(&self) -> RqliteArgument {
+        RqliteArgument::Bool(self.to_owned())
     }
 }
 
-impl RqLiteArgumentRaw for &str {
-    fn encode(&self) -> RqLiteArgument {
-        RqLiteArgument::String(self.to_string())
+impl RqliteArgumentRaw for &str {
+    fn encode(&self) -> RqliteArgument {
+        RqliteArgument::String(self.to_string())
     }
 }
 
-impl RqLiteArgumentRaw for String {
-    fn encode(&self) -> RqLiteArgument {
-        RqLiteArgument::String(self.to_string())
+impl RqliteArgumentRaw for String {
+    fn encode(&self) -> RqliteArgument {
+        RqliteArgument::String(self.to_string())
     }
 }
 
 #[macro_export]
 macro_rules! arg {
     ($e:expr) => {
-        $crate::query::arguments::RqLiteArgumentRaw::encode(&$e)
+        $crate::query::arguments::RqliteArgumentRaw::encode(&$e)
     };
 }

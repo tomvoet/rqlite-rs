@@ -3,23 +3,23 @@ use std::fmt::Debug;
 use crate::{
     query::{self},
     query_result::{QueryResult, QueryResultRaw},
-    response::{RqLiteResponseRaw, RqLiteSelectResponseRawResults},
+    response::{RqliteResponseRaw, RqliteSelectResponseRawResults},
 };
 use rqlite_rs_core::Row;
 
-pub struct RqLiteClient {
+pub struct RqliteClient {
     client: reqwest::Client,
     hosts: Vec<&'static str>,
     active_host: &'static str,
 }
 
-pub struct RqLiteClientBuilder {
+pub struct RqliteClientBuilder {
     hosts: Vec<&'static str>,
 }
 
-impl RqLiteClientBuilder {
+impl RqliteClientBuilder {
     pub fn new(main_host: &'static str) -> Self {
-        RqLiteClientBuilder {
+        RqliteClientBuilder {
             hosts: vec![main_host],
         }
     }
@@ -29,7 +29,7 @@ impl RqLiteClientBuilder {
         self
     }
 
-    pub fn build(self) -> anyhow::Result<RqLiteClient> {
+    pub fn build(self) -> anyhow::Result<RqliteClient> {
         if self.hosts.is_empty() {
             return Err(anyhow::anyhow!("No hosts provided"));
         }
@@ -40,7 +40,7 @@ impl RqLiteClientBuilder {
             .timeout(std::time::Duration::from_secs(5))
             .build()?;
 
-        Ok(RqLiteClient {
+        Ok(RqliteClient {
             client,
             hosts: self.hosts,
             active_host: hosts.first().unwrap(),
@@ -48,8 +48,8 @@ impl RqLiteClientBuilder {
     }
 }
 
-impl RqLiteClient {
-    async fn exec_query<T>(&self, q: query::RqLiteQuery) -> anyhow::Result<QueryResultRaw<T>>
+impl RqliteClient {
+    async fn exec_query<T>(&self, q: query::RqliteQuery) -> anyhow::Result<QueryResultRaw<T>>
     where
         T: serde::de::DeserializeOwned + Clone + Debug,
     {
@@ -61,7 +61,7 @@ impl RqLiteClient {
         let res = req.send().await?;
         let body = res.text().await?;
 
-        let response = serde_json::from_str::<RqLiteResponseRaw<T>>(&body)?;
+        let response = serde_json::from_str::<RqliteResponseRaw<T>>(&body)?;
 
         response
             .results
@@ -70,8 +70,8 @@ impl RqLiteClient {
             .ok_or_else(|| anyhow::anyhow!("No results found in response: {}", body))
     }
 
-    pub async fn fetch(&self, q: query::RqLiteQuery) -> anyhow::Result<Vec<Row>> {
-        let result = self.exec_query::<RqLiteSelectResponseRawResults>(q).await?;
+    pub async fn fetch(&self, q: query::RqliteQuery) -> anyhow::Result<Vec<Row>> {
+        let result = self.exec_query::<RqliteSelectResponseRawResults>(q).await?;
 
         match result {
             QueryResultRaw::Success(qr) => qr.rows(),
@@ -79,7 +79,7 @@ impl RqLiteClient {
         }
     }
 
-    pub async fn exec(&self, q: query::RqLiteQuery) -> anyhow::Result<QueryResult> {
+    pub async fn exec(&self, q: query::RqliteQuery) -> anyhow::Result<QueryResult> {
         let query_result = self.exec_query::<QueryResult>(q).await?;
 
         match query_result {

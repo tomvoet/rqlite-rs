@@ -7,18 +7,18 @@ use crate::query_result::QueryResultRaw;
 use rqlite_rs_core::{Column, Row};
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct RqLiteResponseRaw<T> {
+pub(crate) struct RqliteResponseRaw<T> {
     pub(crate) results: Vec<QueryResultRaw<T>>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub(crate) struct RqLiteSelectResponseRawResults {
+pub(crate) struct RqliteSelectResponseRawResults {
     columns: Vec<String>,
     types: Vec<String>,
     values: Option<Vec<Vec<Value>>>,
 }
 
-impl RqLiteSelectResponseRawResults {
+impl RqliteSelectResponseRawResults {
     pub(crate) fn rows(&self) -> anyhow::Result<Vec<Row>> {
         let mut rows = Vec::new();
 

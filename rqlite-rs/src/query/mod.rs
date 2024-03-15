@@ -5,32 +5,32 @@ use serde::Serialize;
 use serde_json;
 
 pub mod arguments;
-pub(crate) use arguments::RqLiteArgument;
+pub(crate) use arguments::RqliteArgument;
 
 #[derive(Debug)]
-pub struct RqLiteQuery {
+pub struct RqliteQuery {
     pub query: String,
-    pub args: Vec<RqLiteArgument>,
+    pub args: Vec<RqliteArgument>,
     pub op: Operation,
 }
 
 #[derive(Serialize, Debug)]
-struct QueryComponent(RqLiteArgument);
+struct QueryComponent(RqliteArgument);
 
 #[derive(Serialize, Debug)]
 pub(crate) struct QueryArgs(Vec<Vec<QueryComponent>>);
 
 impl QueryArgs {
     fn new(query: String) -> QueryArgs {
-        QueryArgs(vec![vec![QueryComponent(RqLiteArgument::String(query))]])
+        QueryArgs(vec![vec![QueryComponent(RqliteArgument::String(query))]])
     }
 
-    fn add(&mut self, arg: RqLiteArgument) {
+    fn add(&mut self, arg: RqliteArgument) {
         self.0[0].push(QueryComponent(arg));
     }
 }
 
-impl RqLiteQuery {
+impl RqliteQuery {
     pub(crate) fn to_json(&self) -> anyhow::Result<String> {
         let query = self.query.clone();
         let mut args = QueryArgs::new(query);
@@ -89,11 +89,11 @@ macro_rules! query {
             anyhow::bail!("Invalid query");
         };
 
-        Ok($crate::query::RqLiteQuery {
+        Ok($crate::query::RqliteQuery {
             query: $query.to_string(),
             args: vec![],
             op,
-        }) as anyhow::Result<$crate::query::RqLiteQuery>
+        }) as anyhow::Result<$crate::query::RqliteQuery>
     }};
     ( $query:expr, $( $args:expr ),* ) => {{
         let Ok(query) = $crate::query!($query) else {
@@ -117,10 +117,10 @@ macro_rules! query {
             anyhow::bail!("Invalid number of arguments, expected {}, got {}", param_count, argc);
         }
 
-        Ok($crate::query::RqLiteQuery {
+        Ok($crate::query::RqliteQuery {
             query: query.query,
             args,
             op: query.op,
-        }) as anyhow::Result<$crate::query::RqLiteQuery>
+        }) as anyhow::Result<$crate::query::RqliteQuery>
     }};
 }

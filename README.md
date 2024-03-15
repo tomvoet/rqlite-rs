@@ -16,7 +16,7 @@ pub struct Table {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let client = RqLiteClientBuilder::new("localhost:4001").build()?;
+    let client = RqliteClientBuilder::new("localhost:4001").build()?;
 
     let query = rqlite_rs::query!(
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
@@ -33,7 +33,3 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 ```
-
-
-## Roadmap
-- [] Automtically switch to different node if the current node is down
