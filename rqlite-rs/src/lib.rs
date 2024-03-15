@@ -11,6 +11,7 @@ pub use rqlite_rs_macros::*;
 pub mod prelude {
     pub use crate::client::RqliteClient;
     pub use crate::client::RqliteClientBuilder;
+    pub use crate::query_result::QueryResult;
     pub use crate::FromRow;
     pub use crate::IntoTypedRows;
     pub use crate::Row;
