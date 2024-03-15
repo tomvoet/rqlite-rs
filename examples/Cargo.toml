@@ -12,3 +12,7 @@ anyhow = "=1.0.81"
 [[example]]
 name = "list-tables"
 path = "list-tables.rs"
+
+[[example]]
+name = "get-nodes"
+path = "get-nodes.rs"
