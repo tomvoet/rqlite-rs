@@ -5,6 +5,11 @@ It is written fully in rust, provides a fully async interface using [reqwest](ht
 Utilizing a reqwest connection pool it can efficiently manage connections to the rqlite cluster.
 It is fully compatible with the rqlite API and provides a high level interface for easy usage.
 
+## Getting Started
+A good place to start is the [rqlite-rs documentation](https://docs.rs/rqlite-rs/).
+The documentation provides a good overview of the library and its features.
+The [rqlite documentation](https://rqlite.io) can help getting started with rqlite itself and how to set up a cluster.
+
 ## Usage
 ```rust
 use rqlite_rs::prelude::*;

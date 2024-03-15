@@ -7,6 +7,7 @@ use serde_json;
 pub mod arguments;
 pub(crate) use arguments::RqliteArgument;
 
+/// A query to be executed on the rqlite cluster.
 #[derive(Debug)]
 pub struct RqliteQuery {
     pub query: String,
@@ -58,6 +59,7 @@ impl RqliteQuery {
     }
 }
 
+/// The type of operation for a query.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Operation {
     Create,
@@ -68,6 +70,18 @@ pub enum Operation {
     Pragma,
 }
 
+/// A macro for creating a query.
+/// Returns a `Result` with an [`RqliteQuery`] if the query is valid.
+/// # Examples
+/// ```
+/// # use rqlite_rs::prelude::*;
+/// let query = query!("SELECT * FROM foo");
+/// assert!(query.is_ok());
+///
+/// let query = query!("SELECT * FROM foo WHERE id = ?", 1);
+/// assert!(query.is_ok());
+/// assert_eq!(query.unwrap().args.len(), 1);
+/// ```
 #[macro_export]
 macro_rules! query {
     ( $query:expr ) => {{

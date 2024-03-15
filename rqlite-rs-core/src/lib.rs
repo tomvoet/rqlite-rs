@@ -8,6 +8,7 @@ pub use into_typed_rows::IntoTypedRows;
 pub use row::Row;
 
 mod prelude {
+    #![allow(unused_imports)]
     pub use crate::column::Column;
     pub use crate::from_row::FromRow;
     pub use crate::into_typed_rows::IntoTypedRows;
