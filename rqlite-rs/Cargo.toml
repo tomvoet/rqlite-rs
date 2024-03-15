@@ -1,6 +1,6 @@
 [package]
 name = "rqlite-rs"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 publish = true
 license = "MIT"
@@ -18,7 +18,7 @@ macros = ["rqlite-rs-macros"]
 
 [dependencies]
 rqlite-rs-macros = { version = "0.2.0", path = "../rqlite-rs-macros", optional = true }
-rqlite-rs-core = { version = "0.2.0", path = "../rqlite-rs-core" }
+rqlite-rs-core = { version = "0.2.2", path = "../rqlite-rs-core" }
 anyhow = "1.0.80"
 reqwest = { version = "0.11.25" }
 serde = { version = "1.0.197", features = ["derive"] }
