@@ -1,0 +1,25 @@
+[package]
+name = "rqlite-rs"
+version = "0.2.0"
+edition = "2021"
+publish = true
+license = "MIT"
+description = "Async Rqlite client for Rust"
+repository = "https://github.com/tomvoet/rqlite-rs"
+readme = "../README.md"
+keywords = ["rqlite", "database", "async"]
+categories = ["database", "asynchronous"]
+authors = ["Tom Voet <tomvoet@pm.me>"]
+
+[features]
+default = []
+macros = ["rqlite-rs-macros"]
+
+
+[dependencies]
+rqlite-rs-macros = { version = "0.2.0", path = "../rqlite-rs-macros", optional = true }
+rqlite-rs-core = { version = "0.2.0", path = "../rqlite-rs-core" }
+anyhow = "1.0.80"
+reqwest = { version = "0.11.25" }
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"

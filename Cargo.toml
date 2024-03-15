@@ -1,0 +1,3 @@
+[workspace]
+members = ["examples", "rqlite-rs", "rqlite-rs-macros", "rqlite-rs-core"]
+resolver = "2"

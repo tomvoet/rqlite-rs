@@ -1,0 +1,17 @@
+[package]
+name = "rqlite-rs-core"
+version = "0.2.0"
+edition = "2021"
+publish = true
+license = "MIT"
+description = "Core library for rqlite-rs"
+repository = "https://github.com/tomvoet/rqlite-rs"
+readme = "../README.md"
+keywords = ["rqlite", "database", "async"]
+categories = ["database", "asynchronous"]
+authors = ["Tom Voet <tomvoet@pm.me>"]
+
+[dependencies]
+anyhow = "1.0.81"
+serde = "1.0.197"
+serde_json = "1.0.114"

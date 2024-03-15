@@ -1,0 +1,9 @@
+.vscode
+target/
+Cargo.lock
+/book/book
+/docs/_build
+/docs/book
+/docs/source/.doctrees
+/docs/poetry.lock
+/docs/_source
