@@ -133,7 +133,7 @@ impl RqliteClient {
     /// Executes a query that does not return any results.
     /// Returns the [`QueryResult`] if the query was successful, otherwise an error.
     /// Is primarily used for `INSERT`, `UPDATE`, `DELETE` and `CREATE` queries.
-    pub async fn exec(&mut self, q: query::RqliteQuery) -> anyhow::Result<QueryResult> {
+    pub async fn exec(&self, q: query::RqliteQuery) -> anyhow::Result<QueryResult> {
         let query_result = self.exec_query::<QueryResult>(q).await?;
 
         match query_result {
