@@ -5,7 +5,7 @@ publish = false
 version = "0.0.0"
 
 [dev-dependencies]
-rqlite-rs = { version = "0.3.0", path = "../rqlite-rs", features = ["macros"] }
+rqlite-rs = { version = "0.3.1", path = "../rqlite-rs", features = ["macros"] }
 tokio = { version = "1.36.0", features = ["rt-multi-thread", "macros"] }
 anyhow = "=1.0.81"
 
@@ -20,3 +20,7 @@ path = "get-nodes.rs"
 [[example]]
 name = "batch"
 path = "batch.rs"
+
+[[example]]
+name = "fallback-node"
+path = "fallback-node.rs"

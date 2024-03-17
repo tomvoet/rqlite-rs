@@ -72,8 +72,8 @@ impl RqliteQuery {
         Ok(serde_json::to_string(&args)?)
     }
 
-    pub(crate) fn url(&self, host: &str) -> anyhow::Result<Url> {
-        let endpoint = match self.op {
+    pub(crate) fn endpoint(&self) -> String {
+        let resource = match self.op {
             Operation::Create => "execute",
             Operation::Select => "query",
             Operation::Update => "execute",
@@ -83,9 +83,7 @@ impl RqliteQuery {
             Operation::Drop => "execute",
         };
 
-        let url = format!("http://{}/db/{}", host, endpoint);
-
-        Ok(Url::from_str(&url)?)
+        format!("db/{}", resource)
     }
 }
 

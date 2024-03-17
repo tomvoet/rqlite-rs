@@ -1,4 +1,7 @@
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
     batch::BatchResult,
@@ -13,13 +16,12 @@ use rqlite_rs_core::Row;
 /// A client for interacting with a rqlite cluster.
 pub struct RqliteClient {
     client: reqwest::Client,
-    hosts: Vec<&'static str>,
-    active_host: &'static str,
+    hosts: Arc<Mutex<Vec<String>>>,
 }
 
 /// A builder for creating a [`RqliteClient`].s
 pub struct RqliteClientBuilder {
-    hosts: Vec<&'static str>,
+    hosts: Vec<String>,
 }
 
 impl RqliteClientBuilder {
@@ -29,8 +31,8 @@ impl RqliteClientBuilder {
     }
 
     /// Adds a known host to the builder.
-    pub fn known_host(mut self, host: &'static str) -> Self {
-        self.hosts.push(host.as_ref());
+    pub fn known_host(mut self, host: impl ToString) -> Self {
+        self.hosts.push(host.to_string());
         self
     }
 
@@ -42,31 +44,70 @@ impl RqliteClientBuilder {
 
         let hosts = self.hosts.clone();
 
-        let active_host = self.hosts.first().unwrap();
-
         let client = reqwest::ClientBuilder::new()
             .timeout(std::time::Duration::from_secs(5))
             .build()?;
 
         Ok(RqliteClient {
             client,
-            hosts,
-            active_host,
+            hosts: Arc::new(Mutex::new(hosts)),
         })
     }
 }
 
 impl RqliteClient {
+    fn shift_host(&self) {
+        let mut hosts = self.hosts.lock().unwrap();
+        let host = hosts.remove(0);
+        hosts.push(host);
+    }
+
+    async fn try_request(
+        &self,
+        endpoint: impl AsRef<str>,
+        body: impl Into<Option<String>>,
+    ) -> anyhow::Result<reqwest::Response> {
+        let body = body.into().unwrap_or_default();
+        let lock_result = self.hosts.try_lock();
+
+        if let Ok(hosts) = lock_result {
+            let hosts_len = hosts.len();
+            drop(hosts);
+            for _ in 0..hosts_len {
+                let Ok(hosts) = self.hosts.try_lock() else {
+                    println!("Failed to acquire lock");
+                    return Err(anyhow::anyhow!("Failed to acquire lock"));
+                };
+
+                let url = format!("http://{}/{}", hosts[0], endpoint.as_ref());
+                let req = self.client.post(&url).body(body.clone());
+
+                match req.send().await {
+                    Ok(res) => return Ok(res),
+                    Err(e) => {
+                        if e.is_connect() || e.is_timeout() {
+                            drop(hosts);
+                            self.shift_host();
+                            println!("Failed to connect to host, trying next one");
+                        } else {
+                            return Err(e.into());
+                        }
+                    }
+                }
+            }
+        } else {
+            println!("Failed to acquire lock");
+        }
+
+        Err(anyhow::anyhow!("No hosts available"))
+    }
+
     async fn exec_query<T>(&self, q: query::RqliteQuery) -> anyhow::Result<RqliteResult<T>>
     where
-        T: serde::de::DeserializeOwned + Clone + Debug,
+        T: serde::de::DeserializeOwned + Clone,
     {
-        let url = q.url(self.active_host)?;
-        let json = q.to_json()?.clone();
+        let res = self.try_request(q.endpoint(), q.to_json()?).await?;
 
-        let req = self.client.post(url).body(json);
-
-        let res = req.send().await?;
         let body = res.text().await?;
 
         let response = serde_json::from_str::<RqliteResponseRaw<T>>(&body)?;
@@ -92,7 +133,7 @@ impl RqliteClient {
     /// Executes a query that does not return any results.
     /// Returns the [`QueryResult`] if the query was successful, otherwise an error.
     /// Is primarily used for `INSERT`, `UPDATE`, `DELETE` and `CREATE` queries.
-    pub async fn exec(&self, q: query::RqliteQuery) -> anyhow::Result<QueryResult> {
+    pub async fn exec(&mut self, q: query::RqliteQuery) -> anyhow::Result<QueryResult> {
         let query_result = self.exec_query::<QueryResult>(q).await?;
 
         match query_result {
@@ -111,12 +152,11 @@ impl RqliteClient {
         &self,
         queries: Vec<query::RqliteQuery>,
     ) -> anyhow::Result<Vec<RqliteResult<BatchResult>>> {
-        let url = format!("http://{}/db/request", self.active_host);
-        let query_args = QueryArgs::from(queries);
-        let batch = serde_json::to_string(&query_args)?;
+        let batch = QueryArgs::from(queries);
+        let body = serde_json::to_string(&batch)?;
 
-        let req = self.client.post(&url).body(batch);
-        let res = req.send().await?;
+        let res = self.try_request("request", body).await?;
+
         let body = res.text().await?;
 
         let results = serde_json::from_str::<RqliteResponseRaw<BatchResult>>(&body)?.results;
@@ -127,8 +167,7 @@ impl RqliteClient {
     /// Checks if the rqlite cluster is ready.
     /// Returns `true` if the cluster is ready, otherwise `false`.
     pub async fn ready(&self) -> bool {
-        let url = format!("http://{}/readyz", self.active_host);
-        match self.client.get(&url).send().await {
+        match self.try_request("readyz", None).await {
             Ok(res) => res.status() == reqwest::StatusCode::OK,
             Err(_) => false,
         }
@@ -137,8 +176,8 @@ impl RqliteClient {
     /// Retrieves the nodes in the rqlite cluster.
     /// Returns a vector of [`Node`]s.
     pub async fn nodes(&self) -> anyhow::Result<Vec<Node>> {
-        let url = format!("http://{}/nodes?ver=2", self.active_host);
-        let res = self.client.get(&url).send().await?;
+        let res = self.try_request("nodes?ver=2", None).await?;
+
         let body = res.text().await?;
 
         let response = serde_json::from_str::<NodeResponse>(&body)?;
@@ -157,10 +196,9 @@ impl RqliteClient {
     /// Removes a node from the rqlite cluster.
     /// Returns Ok on success and Err in case of an error.
     pub async fn remove_node(&self, id: &str) -> anyhow::Result<()> {
-        let url = format!("http://{}/remove", self.active_host);
         let body = serde_json::to_string(&RemoveNodeRequest { id: id.to_string() })?;
 
-        let res = self.client.delete(&url).body(body).send().await?;
+        let res = self.try_request("remove", body).await?;
 
         if res.status().is_success() {
             Ok(())
@@ -170,10 +208,5 @@ impl RqliteClient {
                 res.text().await?
             ))
         }
-    }
-
-    /// Returns the current active host, that is used for all requests.
-    pub fn active_host(&self) -> &'static str {
-        self.active_host
     }
 }
