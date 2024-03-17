@@ -1,10 +1,12 @@
 use std::fmt::Debug;
 
 use crate::{
+    batch::BatchResult,
     node::{Node, NodeResponse, RemoveNodeRequest},
-    query,
-    query_result::{QueryResult, QueryResultRaw},
-    response::{RqliteResponseRaw, RqliteSelectResponseRawResults},
+    query::{self, QueryArgs},
+    query_result::QueryResult,
+    response::{RqliteResponseRaw, RqliteResult},
+    select::RqliteSelectResults,
 };
 use rqlite_rs_core::Row;
 
@@ -21,16 +23,14 @@ pub struct RqliteClientBuilder {
 }
 
 impl RqliteClientBuilder {
-    /// Creates a new [`RqliteClientBuilder`] with the main host.
-    pub fn new(main_host: &'static str) -> Self {
-        RqliteClientBuilder {
-            hosts: vec![main_host],
-        }
+    /// Creates a new [`RqliteClientBuilder`].
+    pub fn new() -> Self {
+        RqliteClientBuilder { hosts: Vec::new() }
     }
 
     /// Adds a known host to the builder.
-    pub fn known_host(&mut self, host: &'static str) -> &Self {
-        self.hosts.push(host);
+    pub fn known_host(mut self, host: &'static str) -> Self {
+        self.hosts.push(host.as_ref());
         self
     }
 
@@ -42,20 +42,22 @@ impl RqliteClientBuilder {
 
         let hosts = self.hosts.clone();
 
+        let active_host = self.hosts.first().unwrap();
+
         let client = reqwest::ClientBuilder::new()
             .timeout(std::time::Duration::from_secs(5))
             .build()?;
 
         Ok(RqliteClient {
             client,
-            hosts: self.hosts,
-            active_host: hosts.first().unwrap(),
+            hosts,
+            active_host,
         })
     }
 }
 
 impl RqliteClient {
-    async fn exec_query<T>(&self, q: query::RqliteQuery) -> anyhow::Result<QueryResultRaw<T>>
+    async fn exec_query<T>(&self, q: query::RqliteQuery) -> anyhow::Result<RqliteResult<T>>
     where
         T: serde::de::DeserializeOwned + Clone + Debug,
     {
@@ -79,11 +81,11 @@ impl RqliteClient {
     /// Executes a query that returns results.
     /// Returns a vector of [`Row`]s if the query was successful, otherwise an error.
     pub async fn fetch(&self, q: query::RqliteQuery) -> anyhow::Result<Vec<Row>> {
-        let result = self.exec_query::<RqliteSelectResponseRawResults>(q).await?;
+        let result = self.exec_query::<RqliteSelectResults>(q).await?;
 
         match result {
-            QueryResultRaw::Success(qr) => qr.rows(),
-            QueryResultRaw::Error(qe) => Err(anyhow::anyhow!(qe.error)),
+            RqliteResult::Success(qr) => qr.rows(),
+            RqliteResult::Error(qe) => Err(anyhow::anyhow!(qe.error)),
         }
     }
 
@@ -94,9 +96,32 @@ impl RqliteClient {
         let query_result = self.exec_query::<QueryResult>(q).await?;
 
         match query_result {
-            QueryResultRaw::Success(qr) => Ok(qr),
-            QueryResultRaw::Error(qe) => Err(anyhow::anyhow!(qe.error)),
+            RqliteResult::Success(qr) => Ok(qr),
+            RqliteResult::Error(qe) => Err(anyhow::anyhow!(qe.error)),
         }
+    }
+
+    /// Executes a batch of queries.
+    /// It allows sending multiple queries in a single request.
+    /// This can be more efficient and reduces round-trips to the database.
+    /// Returns a vector of [`RqliteResult`]s.
+    /// Each result contains the result of the corresponding query in the batch.
+    /// If a query fails, the corresponding result will contain an error.
+    pub async fn batch(
+        &self,
+        queries: Vec<query::RqliteQuery>,
+    ) -> anyhow::Result<Vec<RqliteResult<BatchResult>>> {
+        let url = format!("http://{}/db/request", self.active_host);
+        let query_args = QueryArgs::from(queries);
+        let batch = serde_json::to_string(&query_args)?;
+
+        let req = self.client.post(&url).body(batch);
+        let res = req.send().await?;
+        let body = res.text().await?;
+
+        let results = serde_json::from_str::<RqliteResponseRaw<BatchResult>>(&body)?.results;
+
+        Ok(results)
     }
 
     /// Checks if the rqlite cluster is ready.

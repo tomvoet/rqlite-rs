@@ -25,20 +25,49 @@ impl QueryArgs {
     fn new(query: String) -> QueryArgs {
         QueryArgs(vec![vec![QueryComponent(RqliteArgument::String(query))]])
     }
+}
 
-    fn add(&mut self, arg: RqliteArgument) {
-        self.0[0].push(QueryComponent(arg));
+impl From<RqliteQuery> for QueryArgs {
+    fn from(query: RqliteQuery) -> Self {
+        let mut args = Vec::new();
+
+        let mut components = Vec::new();
+
+        components.push(QueryComponent(RqliteArgument::String(query.query)));
+
+        for arg in query.args {
+            components.push(QueryComponent(arg));
+        }
+
+        args.push(components);
+
+        QueryArgs(args)
+    }
+}
+
+impl From<Vec<RqliteQuery>> for QueryArgs {
+    fn from(queries: Vec<RqliteQuery>) -> Self {
+        let mut args = Vec::new();
+
+        for query in queries {
+            let mut components = Vec::new();
+
+            components.push(QueryComponent(RqliteArgument::String(query.query)));
+
+            for arg in query.args {
+                components.push(QueryComponent(arg));
+            }
+
+            args.push(components);
+        }
+
+        QueryArgs(args)
     }
 }
 
 impl RqliteQuery {
-    pub(crate) fn to_json(&self) -> anyhow::Result<String> {
-        let query = self.query.clone();
-        let mut args = QueryArgs::new(query);
-
-        for arg in &self.args {
-            args.add(arg.clone());
-        }
+    pub(crate) fn to_json(self) -> anyhow::Result<String> {
+        let args = QueryArgs::from(self);
 
         Ok(serde_json::to_string(&args)?)
     }
@@ -51,6 +80,7 @@ impl RqliteQuery {
             Operation::Delete => "execute",
             Operation::Insert => "execute",
             Operation::Pragma => "query",
+            Operation::Drop => "execute",
         };
 
         let url = format!("http://{}/db/{}", host, endpoint);
@@ -68,6 +98,7 @@ pub enum Operation {
     Delete,
     Insert,
     Pragma,
+    Drop,
 }
 
 /// A macro for creating a query.
@@ -99,6 +130,8 @@ macro_rules! query {
             $crate::query::Operation::Insert
         } else if lower.starts_with("pragma") {
             $crate::query::Operation::Pragma
+        } else if lower.starts_with("drop") {
+            $crate::query::Operation::Drop
         } else {
             anyhow::bail!("Invalid query");
         };
