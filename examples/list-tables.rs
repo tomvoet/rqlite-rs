@@ -7,7 +7,9 @@ pub struct Table {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let client = RqliteClientBuilder::new("localhost:4001").build()?;
+    let client = RqliteClientBuilder::new()
+        .known_host("localhost:4001")
+        .build()?;
 
     let query = rqlite_rs::query!(
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
