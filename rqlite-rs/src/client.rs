@@ -68,35 +68,30 @@ impl RqliteClient {
         body: impl Into<Option<String>>,
     ) -> anyhow::Result<reqwest::Response> {
         let body = body.into().unwrap_or_default();
-        let lock_result = self.hosts.try_lock();
+        let (mut host, host_count) = {
+            let hosts = self.hosts.lock().unwrap();
+            let host = hosts[0].clone();
+            (host, hosts.len())
+        };
 
-        if let Ok(hosts) = lock_result {
-            let hosts_len = hosts.len();
-            drop(hosts);
-            for _ in 0..hosts_len {
-                let Ok(hosts) = self.hosts.try_lock() else {
-                    println!("Failed to acquire lock");
-                    return Err(anyhow::anyhow!("Failed to acquire lock"));
-                };
+        for _ in 0..host_count {
+            let url = format!("http://{}/{}", host, endpoint.as_ref());
+            let req = self.client.post(&url).body(body.clone());
 
-                let url = format!("http://{}/{}", hosts[0], endpoint.as_ref());
-                let req = self.client.post(&url).body(body.clone());
-
-                match req.send().await {
-                    Ok(res) => return Ok(res),
-                    Err(e) => {
-                        if e.is_connect() || e.is_timeout() {
-                            drop(hosts);
-                            self.shift_host();
-                            println!("Failed to connect to host, trying next one");
-                        } else {
-                            return Err(e.into());
-                        }
+            match req.send().await {
+                Ok(res) => return Ok(res),
+                Err(e) => {
+                    if e.is_connect() || e.is_timeout() {
+                        let previous_host = host.clone();
+                        self.shift_host();
+                        let hosts = self.hosts.lock().unwrap();
+                        host = hosts[0].clone();
+                        println!("Connection to {} failed, trying {}", previous_host, host);
+                    } else {
+                        return Err(e.into());
                     }
                 }
             }
-        } else {
-            println!("Failed to acquire lock");
         }
 
         Err(anyhow::anyhow!("No hosts available"))
