@@ -5,7 +5,7 @@ publish = false
 version = "0.0.0"
 
 [dev-dependencies]
-rqlite-rs = { version = "0.3.1", path = "../rqlite-rs", features = ["macros"] }
+rqlite-rs = { version = "0.3.3", path = "../rqlite-rs", features = ["macros"] }
 tokio = { version = "1.36.0", features = ["rt-multi-thread", "macros"] }
 anyhow = "=1.0.81"
 
