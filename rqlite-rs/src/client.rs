@@ -1,12 +1,9 @@
-use std::{
-    fmt::Debug,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use crate::{
     batch::BatchResult,
     node::{Node, NodeResponse, RemoveNodeRequest},
-    query::{self, QueryArgs},
+    query::{self, QueryArgs, RqliteQuery},
     query_result::QueryResult,
     response::{RqliteResponseRaw, RqliteResult},
     select::RqliteSelectResults,
@@ -116,8 +113,13 @@ impl RqliteClient {
 
     /// Executes a query that returns results.
     /// Returns a vector of [`Row`]s if the query was successful, otherwise an error.
-    pub async fn fetch(&self, q: query::RqliteQuery) -> anyhow::Result<Vec<Row>> {
-        let result = self.exec_query::<RqliteSelectResults>(q).await?;
+    pub async fn fetch<Q: TryInto<RqliteQuery>>(&self, q: Q) -> anyhow::Result<Vec<Row>>
+    where
+        anyhow::Error: From<Q::Error>,
+    {
+        let result = self
+            .exec_query::<RqliteSelectResults>(q.try_into()?)
+            .await?;
 
         match result {
             RqliteResult::Success(qr) => qr.rows(),
@@ -128,8 +130,11 @@ impl RqliteClient {
     /// Executes a query that does not return any results.
     /// Returns the [`QueryResult`] if the query was successful, otherwise an error.
     /// Is primarily used for `INSERT`, `UPDATE`, `DELETE` and `CREATE` queries.
-    pub async fn exec(&self, q: query::RqliteQuery) -> anyhow::Result<QueryResult> {
-        let query_result = self.exec_query::<QueryResult>(q).await?;
+    pub async fn exec<Q: TryInto<RqliteQuery>>(&self, q: Q) -> anyhow::Result<QueryResult>
+    where
+        anyhow::Error: From<Q::Error>,
+    {
+        let query_result = self.exec_query::<QueryResult>(q.try_into()?).await?;
 
         match query_result {
             RqliteResult::Success(qr) => Ok(qr),
@@ -143,10 +148,16 @@ impl RqliteClient {
     /// Returns a vector of [`RqliteResult`]s.
     /// Each result contains the result of the corresponding query in the batch.
     /// If a query fails, the corresponding result will contain an error.
-    pub async fn batch(
-        &self,
-        queries: Vec<query::RqliteQuery>,
-    ) -> anyhow::Result<Vec<RqliteResult<BatchResult>>> {
+    pub async fn batch<T>(&self, qs: Vec<T>) -> anyhow::Result<Vec<RqliteResult<BatchResult>>>
+    where
+        T: TryInto<RqliteQuery>,
+        anyhow::Error: From<T::Error>,
+    {
+        let queries = qs
+            .into_iter()
+            .map(|q| q.try_into())
+            .collect::<Result<Vec<RqliteQuery>, _>>()?;
+
         let batch = QueryArgs::from(queries);
         let body = serde_json::to_string(&batch)?;
 

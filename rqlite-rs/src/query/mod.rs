@@ -1,6 +1,5 @@
-use std::str::FromStr;
+use std::any;
 
-use reqwest::Url;
 use serde::Serialize;
 use serde_json;
 
@@ -15,17 +14,47 @@ pub struct RqliteQuery {
     pub op: Operation,
 }
 
+impl TryInto<RqliteQuery> for String {
+    type Error = anyhow::Error;
+
+    /// Attempts to convert a string into a [`RqliteQuery`].
+    /// Returns a `Result` with the query if the string is valid.
+    /// Fails if the query does not start with a valid operation.
+    /// See [`Operation`] for a list of valid operations.
+    fn try_into(self) -> Result<RqliteQuery, Self::Error> {
+        let op = Operation::from_query_string(self.as_str())?;
+
+        Ok(RqliteQuery {
+            query: self,
+            args: vec![],
+            op,
+        })
+    }
+}
+
+impl TryInto<RqliteQuery> for &str {
+    type Error = anyhow::Error;
+
+    /// Attempts to convert a string into a [`RqliteQuery`].
+    /// Returns a `Result` with the query if the string is valid.
+    /// Fails if the query does not start with a valid operation.
+    /// See [`Operation`] for a list of valid operations.
+    fn try_into(self) -> Result<RqliteQuery, Self::Error> {
+        let op = Operation::from_query_string(&self)?;
+
+        Ok(RqliteQuery {
+            query: self.to_string(),
+            args: vec![],
+            op,
+        })
+    }
+}
+
 #[derive(Serialize, Debug)]
 struct QueryComponent(RqliteArgument);
 
 #[derive(Serialize, Debug)]
 pub(crate) struct QueryArgs(Vec<Vec<QueryComponent>>);
-
-impl QueryArgs {
-    fn new(query: String) -> QueryArgs {
-        QueryArgs(vec![vec![QueryComponent(RqliteArgument::String(query))]])
-    }
-}
 
 impl From<RqliteQuery> for QueryArgs {
     fn from(query: RqliteQuery) -> Self {
@@ -99,6 +128,21 @@ pub enum Operation {
     Drop,
 }
 
+impl Operation {
+    pub fn from_query_string(query: &str) -> anyhow::Result<Self> {
+        match query.to_lowercase() {
+            q if q.starts_with("create") => Ok(Operation::Create),
+            q if q.starts_with("select") => Ok(Operation::Select),
+            q if q.starts_with("update") => Ok(Operation::Update),
+            q if q.starts_with("delete") => Ok(Operation::Delete),
+            q if q.starts_with("insert") => Ok(Operation::Insert),
+            q if q.starts_with("pragma") => Ok(Operation::Pragma),
+            q if q.starts_with("drop") => Ok(Operation::Drop),
+            _ => anyhow::bail!("Invalid query"),
+        }
+    }
+}
+
 /// A macro for creating a query.
 /// Returns a `Result` with an [`RqliteQuery`] if the query is valid.
 /// # Examples
@@ -116,23 +160,24 @@ macro_rules! query {
     ( $query:expr ) => {{
         let lower = $query.to_lowercase();
 
-        let op = if lower.starts_with("create") {
-            $crate::query::Operation::Create
-        } else if lower.starts_with("select") {
-            $crate::query::Operation::Select
-        } else if lower.starts_with("update") {
-            $crate::query::Operation::Update
-        } else if lower.starts_with("delete") {
-            $crate::query::Operation::Delete
-        } else if lower.starts_with("insert") {
-            $crate::query::Operation::Insert
-        } else if lower.starts_with("pragma") {
-            $crate::query::Operation::Pragma
-        } else if lower.starts_with("drop") {
-            $crate::query::Operation::Drop
-        } else {
-            anyhow::bail!("Invalid query");
-        };
+        //let op = if lower.starts_with("create") {
+        //    $crate::query::Operation::Create
+        //} else if lower.starts_with("select") {
+        //    $crate::query::Operation::Select
+        //} else if lower.starts_with("update") {
+        //    $crate::query::Operation::Update
+        //} else if lower.starts_with("delete") {
+        //    $crate::query::Operation::Delete
+        //} else if lower.starts_with("insert") {
+        //    $crate::query::Operation::Insert
+        //} else if lower.starts_with("pragma") {
+        //    $crate::query::Operation::Pragma
+        //} else if lower.starts_with("drop") {
+        //    $crate::query::Operation::Drop
+        //} else {
+        //    anyhow::bail!("Invalid query");
+        //};
+        let op = $crate::query::Operation::from_query_string($query)?;
 
         Ok($crate::query::RqliteQuery {
             query: $query.to_string(),
