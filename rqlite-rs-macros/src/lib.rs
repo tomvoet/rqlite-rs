@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput};
+use syn::{parse_macro_input, DeriveInput, Type};
 
 #[proc_macro_derive(FromRow)]
 pub fn derive_from_row(input: TokenStream) -> TokenStream {
@@ -11,7 +11,20 @@ pub fn derive_from_row(input: TokenStream) -> TokenStream {
             let field_vals = fields.named.iter().map(|field| {
                 let field_name = field.ident.as_ref().unwrap();
                 let field_name_string = field_name.to_string();
-                quote!(#field_name: row.get(#field_name_string)?)
+
+                match &field.ty {
+                    // If the field is an Option, we need to use `get_opt` instead of `get`
+                    Type::Path(type_path)
+                        if type_path.path.segments.last().unwrap().ident == "Option" =>
+                    {
+                        quote! {
+                            #field_name: row.get_opt(#field_name_string).unwrap_or(None)
+                        }
+                    }
+                    _ => quote! {
+                        #field_name: row.get(#field_name_string)?
+                    },
+                }
             });
 
             let struct_name = &input.ident;

@@ -45,6 +45,21 @@ impl Row {
         Ok(value)
     }
 
+    pub fn get_opt<T: serde::de::DeserializeOwned>(&self, name: &str) -> anyhow::Result<Option<T>> {
+        let index = self
+            .column_names
+            .get(name)
+            .ok_or_else(|| anyhow::anyhow!("Column not found"))?;
+        let value = self.values.get(*index).cloned();
+        match value {
+            Some(value) => {
+                let value = serde_json::from_value(value)?;
+                Ok(Some(value))
+            }
+            None => Ok(None),
+        }
+    }
+
     pub fn get_by_index<T: serde::de::DeserializeOwned>(&self, index: usize) -> anyhow::Result<T> {
         let value = self
             .values
