@@ -67,7 +67,7 @@ For detailed API documentation and advanced usage, visit [rqlite-rs documentatio
 
 ## Contributing
 
-Contributions are welcome! Please refer to the contributing guidelines for more information.
+Contributions are welcome!
 
 ## License
 
