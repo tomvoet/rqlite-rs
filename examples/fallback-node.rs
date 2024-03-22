@@ -7,19 +7,6 @@ async fn main() -> anyhow::Result<()> {
         .known_host("localhost:4001")
         .build()?;
 
-    tokio::spawn(async move {
-        let client = RqliteClientBuilder::new()
-            .known_host("localhost:4001")
-            .build()
-            .unwrap();
-
-        let query = rqlite_rs::query!("SELECT 1").unwrap();
-
-        let _ = client.fetch(query).await;
-
-        Ok(())
-    });
-
     loop {
         let query = rqlite_rs::query!(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
