@@ -161,7 +161,7 @@ impl RqliteClient {
         let batch = QueryArgs::from(queries);
         let body = serde_json::to_string(&batch)?;
 
-        let res = self.try_request("request", body).await?;
+        let res = self.try_request("db/request", body).await?;
 
         let body = res.text().await?;
 
