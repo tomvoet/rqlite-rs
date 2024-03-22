@@ -61,9 +61,11 @@ impl RqliteClient {
 
     async fn try_request(
         &self,
+        method: impl Into<Option<reqwest::Method>>,
         endpoint: impl AsRef<str>,
         body: impl Into<Option<String>>,
     ) -> anyhow::Result<reqwest::Response> {
+        let method: reqwest::Method = method.into().unwrap_or(reqwest::Method::POST);
         let body = body.into().unwrap_or_default();
         let (mut host, host_count) = {
             let hosts = self.hosts.lock().unwrap();
@@ -73,10 +75,20 @@ impl RqliteClient {
 
         for _ in 0..host_count {
             let url = format!("http://{}/{}", host, endpoint.as_ref());
-            let req = self.client.post(&url).body(body.clone());
+            let req = self.client.request(method.clone(), &url).body(body.clone());
 
             match req.send().await {
-                Ok(res) => return Ok(res),
+                Ok(res) => {
+                    if res.status().is_success() {
+                        return Ok(res);
+                    } else {
+                        return Err(anyhow::anyhow!(
+                            "Request failed: {} - {}",
+                            res.status(),
+                            res.text().await?
+                        ));
+                    }
+                }
                 Err(e) => {
                     if e.is_connect() || e.is_timeout() {
                         let previous_host = host.clone();
@@ -98,7 +110,9 @@ impl RqliteClient {
     where
         T: serde::de::DeserializeOwned + Clone,
     {
-        let res = self.try_request(q.endpoint(), q.to_json()?).await?;
+        let res = self
+            .try_request(reqwest::Method::POST, q.endpoint(), q.to_json()?)
+            .await?;
 
         let body = res.text().await?;
 
@@ -161,7 +175,9 @@ impl RqliteClient {
         let batch = QueryArgs::from(queries);
         let body = serde_json::to_string(&batch)?;
 
-        let res = self.try_request("db/request", body).await?;
+        let res = self
+            .try_request(reqwest::Method::POST, "db/request", body)
+            .await?;
 
         let body = res.text().await?;
 
@@ -173,7 +189,7 @@ impl RqliteClient {
     /// Checks if the rqlite cluster is ready.
     /// Returns `true` if the cluster is ready, otherwise `false`.
     pub async fn ready(&self) -> bool {
-        match self.try_request("readyz", None).await {
+        match self.try_request(reqwest::Method::GET, "readyz", None).await {
             Ok(res) => res.status() == reqwest::StatusCode::OK,
             Err(_) => false,
         }
@@ -182,7 +198,9 @@ impl RqliteClient {
     /// Retrieves the nodes in the rqlite cluster.
     /// Returns a vector of [`Node`]s.
     pub async fn nodes(&self) -> anyhow::Result<Vec<Node>> {
-        let res = self.try_request("nodes?ver=2", None).await?;
+        let res = self
+            .try_request(reqwest::Method::GET, "nodes?ver=2", None)
+            .await?;
 
         let body = res.text().await?;
 
@@ -204,7 +222,9 @@ impl RqliteClient {
     pub async fn remove_node(&self, id: &str) -> anyhow::Result<()> {
         let body = serde_json::to_string(&RemoveNodeRequest { id: id.to_string() })?;
 
-        let res = self.try_request("remove", body).await?;
+        let res = self
+            .try_request(reqwest::Method::DELETE, "remove", body)
+            .await?;
 
         if res.status().is_success() {
             Ok(())
