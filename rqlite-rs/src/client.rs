@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
     batch::BatchResult,
@@ -13,7 +16,7 @@ use rqlite_rs_core::Row;
 /// A client for interacting with a rqlite cluster.
 pub struct RqliteClient {
     client: reqwest::Client,
-    hosts: Arc<Mutex<Vec<String>>>,
+    hosts: Arc<Mutex<VecDeque<String>>>,
 }
 
 /// A builder for creating a [`RqliteClient`].s
@@ -39,7 +42,7 @@ impl RqliteClientBuilder {
             return Err(anyhow::anyhow!("No hosts provided"));
         }
 
-        let hosts = self.hosts.clone();
+        let hosts = VecDeque::from(self.hosts);
 
         let client = reqwest::ClientBuilder::new()
             .timeout(std::time::Duration::from_secs(5))
@@ -55,8 +58,7 @@ impl RqliteClientBuilder {
 impl RqliteClient {
     fn shift_host(&self) {
         let mut hosts = self.hosts.lock().unwrap();
-        let host = hosts.remove(0);
-        hosts.push(host);
+        hosts.rotate_left(1);
     }
 
     async fn try_request(
