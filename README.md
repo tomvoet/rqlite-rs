@@ -22,7 +22,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rqlite-rs = "0.1.0"
+rqlite-rs = "0.3.8"
 ```
 
 ## Quick Start
@@ -33,13 +33,14 @@ Ensure you have a running rqlite cluster. Replace `localhost:4001` and `localhos
 use rqlite_rs::prelude::*;
 
 #[derive(FromRow)]
-pub struct Table { name: String, }
+pub struct Table {
+    name: String,
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let client = RqliteClientBuilder::new()
         .known_host("localhost:4001")
-        .known_host("localhost:4002")
         .build()?;
 
     let query = rqlite_rs::query!(
@@ -47,6 +48,7 @@ async fn main() -> anyhow::Result<()> {
     )?;
 
     let rows = client.fetch(query).await?;
+
     let tables = rows.into_typed::<Table>()?;
 
     for table in tables {
