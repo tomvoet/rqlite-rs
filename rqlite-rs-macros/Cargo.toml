@@ -1,6 +1,6 @@
 [package]
 name = "rqlite-rs-macros"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 publish = true
 license = "MIT"
@@ -17,5 +17,5 @@ proc-macro = true
 
 [dependencies]
 quote = "1.0.35"
-rqlite-rs-core = { version = "0.2.4", path = "../rqlite-rs-core" }
-syn = { version = "2.0.52", features = ["full", "parsing"] }
+rqlite-rs-core = { version = "0.2.5", path = "../rqlite-rs-core" }
+syn = { version = "2.0.57", features = ["full", "parsing"] }

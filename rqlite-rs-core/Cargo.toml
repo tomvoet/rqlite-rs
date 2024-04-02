@@ -1,6 +1,6 @@
 [package]
 name = "rqlite-rs-core"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2021"
 publish = true
 license = "MIT"
@@ -13,6 +13,6 @@ authors = ["Tom Voet <tomvoet@pm.me>"]
 documentation = "https://docs.rs/rqlite-rs/"
 
 [dependencies]
-anyhow = "1.0.81"
-serde = "1.0.197"
-serde_json = "1.0.114"
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
