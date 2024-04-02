@@ -191,6 +191,8 @@ impl RqliteClient {
     /// Returns a vector of [`RqliteResult`]s.
     /// Each result contains the result of the corresponding query in the batch.
     /// If a query fails, the corresponding result will contain an error.
+    ///
+    /// For more information on batch queries, see the [rqlite documentation](https://rqlite.io/docs/api/bulk-api/).
     pub async fn batch<T>(&self, qs: Vec<T>) -> anyhow::Result<Vec<RqliteResult<BatchResult>>>
     where
         T: TryInto<RqliteQuery>,
@@ -217,6 +219,73 @@ impl RqliteClient {
         let results = serde_json::from_str::<RqliteResponseRaw<BatchResult>>(&body)?.results;
 
         Ok(results)
+    }
+
+    /// Executes a transaction.
+    /// A transaction is a set of queries that are executed as a single unit.
+    /// If any of the queries fail, the entire transaction is rolled back.
+    /// Returns a vector of [`RqliteResult`]s.
+    ///
+    /// For more information on transactions, see the [rqlite documentation](https://rqlite.io/docs/api/api/#transactions).
+    pub async fn transaction<T>(&self, qs: Vec<T>) -> anyhow::Result<Vec<RqliteResult<QueryResult>>>
+    where
+        T: TryInto<RqliteQuery>,
+        anyhow::Error: From<T::Error>,
+    {
+        let queries = qs
+            .into_iter()
+            .map(|q| q.try_into())
+            .collect::<Result<Vec<RqliteQuery>, _>>()?;
+
+        let batch = QueryArgs::from(queries);
+        let body = serde_json::to_string(&batch)?;
+
+        let res = self
+            .try_request(RequestOptions {
+                endpoint: "db/execute".to_string(),
+                body: Some(body),
+                params: Some(
+                    RqliteQueryParams::new()
+                        .transaction()
+                        .to_request_query_params(),
+                ),
+                ..Default::default()
+            })
+            .await?;
+
+        let body = res.text().await?;
+
+        let results = serde_json::from_str::<RqliteResponseRaw<QueryResult>>(&body)?.results;
+
+        Ok(results)
+    }
+
+    /// Asynchronously executes multiple queries.
+    /// This results in much higher write performance.
+    ///
+    /// For more information on queued queries, see the [rqlite documentation](https://rqlite.io/docs/api/queued-writes/).
+    pub async fn queue<T>(&self, qs: Vec<T>) -> anyhow::Result<()>
+    where
+        T: TryInto<RqliteQuery>,
+        anyhow::Error: From<T::Error>,
+    {
+        let queries = qs
+            .into_iter()
+            .map(|q| q.try_into())
+            .collect::<Result<Vec<RqliteQuery>, _>>()?;
+
+        let batch = QueryArgs::from(queries);
+        let body = serde_json::to_string(&batch)?;
+
+        self.try_request(RequestOptions {
+            endpoint: "db/execute".to_string(),
+            body: Some(body),
+            params: Some(RqliteQueryParams::new().queue().to_request_query_params()),
+            ..Default::default()
+        })
+        .await?;
+
+        Ok(())
     }
 
     /// Checks if the rqlite cluster is ready.

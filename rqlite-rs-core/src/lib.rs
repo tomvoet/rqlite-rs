@@ -1,8 +1,10 @@
 mod column;
+mod error;
 mod from_row;
 mod into_typed_rows;
 mod row;
 pub use column::Column;
+pub use error::IntoTypedError;
 pub use from_row::FromRow;
 pub use into_typed_rows::IntoTypedRows;
 pub use row::Row;
@@ -13,4 +15,5 @@ mod prelude {
     pub use crate::from_row::FromRow;
     pub use crate::into_typed_rows::IntoTypedRows;
     pub use crate::row::Row;
+    pub use crate::IntoTypedError;
 }

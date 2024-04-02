@@ -1,0 +1,11 @@
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum IntoTypedError {
+    #[error("Failed to convert value to type")]
+    ConversionError(#[from] serde_json::Error),
+    #[error("Column not found")]
+    ColumnNotFound,
+    #[error("Value not found")]
+    ValueNotFound,
+}

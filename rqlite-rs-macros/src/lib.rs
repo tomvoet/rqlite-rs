@@ -31,7 +31,7 @@ pub fn derive_from_row(input: TokenStream) -> TokenStream {
 
             return TokenStream::from(quote!(
                 impl rqlite_rs::FromRow for #struct_name {
-                    fn from_row(row: rqlite_rs::Row) -> anyhow::Result<Self> {
+                    fn from_row(row: rqlite_rs::Row) -> Result<Self, rqlite_rs::IntoTypedError> {
                         Ok(#struct_name {
                             #(#field_vals),*
                         })

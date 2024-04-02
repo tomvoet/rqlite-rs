@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use serde_json::Value;
 
-use crate::{column::Column, from_row::FromRow};
+use crate::{column::Column, from_row::FromRow, IntoTypedError};
 
 #[derive(Debug)]
 pub struct Row {
@@ -32,40 +32,57 @@ impl Row {
         &self.column_names
     }
 
-    pub fn get<T: serde::de::DeserializeOwned>(&self, name: &str) -> anyhow::Result<T> {
+    pub fn get<T: serde::de::DeserializeOwned>(&self, name: &str) -> Result<T, IntoTypedError> {
         let index = self
             .column_names
             .get(name)
-            .ok_or_else(|| anyhow::anyhow!("Column not found"))?;
+            .ok_or(IntoTypedError::ColumnNotFound)?;
+
         let value = self
             .values
             .get(*index)
-            .ok_or_else(|| anyhow::anyhow!("Value not found"))?;
-        let value = serde_json::from_value(value.clone())?;
+            .ok_or(IntoTypedError::ValueNotFound)?;
+
+        let value =
+            serde_json::from_value(value.clone()).map_err(IntoTypedError::ConversionError)?;
+
         Ok(value)
     }
 
-    pub fn get_opt<T: serde::de::DeserializeOwned>(&self, name: &str) -> anyhow::Result<Option<T>> {
+    pub fn get_opt<T: serde::de::DeserializeOwned>(
+        &self,
+        name: &str,
+    ) -> Result<Option<T>, IntoTypedError> {
         let index = self
             .column_names
             .get(name)
-            .ok_or_else(|| anyhow::anyhow!("Column not found"))?;
-        let value = self.values.get(*index).cloned();
+            .ok_or(IntoTypedError::ColumnNotFound)?;
+
+        let value = self
+            .values
+            .get(*index)
+            .ok_or(IntoTypedError::ValueNotFound)?;
+
         match value {
-            Some(value) => {
-                let value = serde_json::from_value(value)?;
+            Value::Null => Ok(None),
+            _ => {
+                let value = serde_json::from_value(value.clone())
+                    .map_err(IntoTypedError::ConversionError)?;
                 Ok(Some(value))
             }
-            None => Ok(None),
         }
     }
 
-    pub fn get_by_index<T: serde::de::DeserializeOwned>(&self, index: usize) -> anyhow::Result<T> {
+    pub fn get_by_index<T: serde::de::DeserializeOwned>(
+        &self,
+        index: usize,
+    ) -> Result<T, IntoTypedError> {
         let value = self
             .values
             .get(index)
-            .ok_or_else(|| anyhow::anyhow!("Value not found"))?;
-        let value = serde_json::from_value(value.clone())?;
+            .ok_or(IntoTypedError::ValueNotFound)?;
+        let value =
+            serde_json::from_value(value.clone()).map_err(IntoTypedError::ConversionError)?;
         Ok(value)
     }
 
@@ -81,7 +98,7 @@ impl Row {
         self.values.is_empty()
     }
 
-    pub fn into_typed<T>(self) -> anyhow::Result<T>
+    pub fn into_typed<T>(self) -> Result<T, IntoTypedError>
     where
         T: FromRow,
     {
