@@ -1,6 +1,6 @@
 use std::{
     collections::VecDeque,
-    sync::{Arc, Mutex},
+    sync::{Arc, RwLock},
 };
 
 use crate::{
@@ -18,7 +18,7 @@ use rqlite_rs_core::Row;
 /// A client for interacting with a rqlite cluster.
 pub struct RqliteClient {
     client: reqwest::Client,
-    hosts: Arc<Mutex<VecDeque<String>>>,
+    hosts: Arc<RwLock<VecDeque<String>>>,
 }
 
 /// A builder for creating a [`RqliteClient`].s
@@ -59,20 +59,20 @@ impl RqliteClientBuilder {
 
         Ok(RqliteClient {
             client,
-            hosts: Arc::new(Mutex::new(hosts)),
+            hosts: Arc::new(RwLock::new(hosts)),
         })
     }
 }
 
 impl RqliteClient {
     fn shift_host(&self) {
-        let mut hosts = self.hosts.lock().unwrap();
+        let mut hosts = self.hosts.write().unwrap();
         hosts.rotate_left(1);
     }
 
     async fn try_request(&self, options: RequestOptions) -> anyhow::Result<reqwest::Response> {
         let (mut host, host_count) = {
-            let hosts = self.hosts.lock().unwrap();
+            let hosts = self.hosts.read().unwrap();
             (hosts[0].clone(), hosts.len())
         };
 
@@ -99,7 +99,7 @@ impl RqliteClient {
         if e.is_connect() || e.is_timeout() {
             let previous_host = host.clone();
             self.shift_host();
-            let hosts = self.hosts.lock().unwrap();
+            let hosts = self.hosts.read().unwrap();
             *host = hosts[0].clone();
             println!("Connection to {} failed, trying {}", previous_host, *host);
             Ok(())
