@@ -8,9 +8,11 @@ use crate::{
     node::{Node, NodeResponse, RemoveNodeRequest},
     query::{self, QueryArgs, RqliteQuery},
     query_result::QueryResult,
+    request::{RequestOptions, RqliteQueryParams},
     response::{RqliteResponseRaw, RqliteResult},
     select::RqliteSelectResults,
 };
+use reqwest::header;
 use rqlite_rs_core::Row;
 
 /// A client for interacting with a rqlite cluster.
@@ -44,8 +46,15 @@ impl RqliteClientBuilder {
 
         let hosts = VecDeque::from(self.hosts);
 
+        let mut headers = header::HeaderMap::new();
+        headers.insert(
+            header::CONTENT_TYPE,
+            header::HeaderValue::from_static("application/json"),
+        );
+
         let client = reqwest::ClientBuilder::new()
             .timeout(std::time::Duration::from_secs(5))
+            .default_headers(headers)
             .build()?;
 
         Ok(RqliteClient {
@@ -61,51 +70,42 @@ impl RqliteClient {
         hosts.rotate_left(1);
     }
 
-    async fn try_request(
-        &self,
-        method: impl Into<Option<reqwest::Method>>,
-        endpoint: impl AsRef<str>,
-        body: impl Into<Option<String>>,
-    ) -> anyhow::Result<reqwest::Response> {
-        let method: reqwest::Method = method.into().unwrap_or(reqwest::Method::POST);
-        let body = body.into().unwrap_or_default();
+    async fn try_request(&self, options: RequestOptions) -> anyhow::Result<reqwest::Response> {
         let (mut host, host_count) = {
             let hosts = self.hosts.lock().unwrap();
-            let host = hosts[0].clone();
-            (host, hosts.len())
+            (hosts[0].clone(), hosts.len())
         };
 
         for _ in 0..host_count {
-            let url = format!("http://{}/{}", host, endpoint.as_ref());
-            let req = self.client.request(method.clone(), &url).body(body.clone());
+            let req = options.to_reqwest_request(&self.client, host.as_str());
 
             match req.send().await {
+                Ok(res) if res.status().is_success() => return Ok(res),
                 Ok(res) => {
-                    if res.status().is_success() {
-                        return Ok(res);
-                    } else {
-                        return Err(anyhow::anyhow!(
-                            "Request failed: {} - {}",
-                            res.status(),
-                            res.text().await?
-                        ));
-                    }
+                    return Err(anyhow::anyhow!(
+                        "Request failed: {} - {}",
+                        res.status(),
+                        res.text().await?
+                    ))
                 }
-                Err(e) => {
-                    if e.is_connect() || e.is_timeout() {
-                        let previous_host = host.clone();
-                        self.shift_host();
-                        let hosts = self.hosts.lock().unwrap();
-                        host = hosts[0].clone();
-                        println!("Connection to {} failed, trying {}", previous_host, host);
-                    } else {
-                        return Err(e.into());
-                    }
-                }
+                Err(e) => self.handle_request_error(e, &mut host)?,
             }
         }
 
         Err(anyhow::anyhow!("No hosts available"))
+    }
+
+    fn handle_request_error(&self, e: reqwest::Error, host: &mut String) -> anyhow::Result<()> {
+        if e.is_connect() || e.is_timeout() {
+            let previous_host = host.clone();
+            self.shift_host();
+            let hosts = self.hosts.lock().unwrap();
+            *host = hosts[0].clone();
+            println!("Connection to {} failed, trying {}", previous_host, *host);
+            Ok(())
+        } else {
+            Err(e.into())
+        }
     }
 
     async fn exec_query<T>(&self, q: query::RqliteQuery) -> anyhow::Result<RqliteResult<T>>
@@ -113,7 +113,11 @@ impl RqliteClient {
         T: serde::de::DeserializeOwned + Clone,
     {
         let res = self
-            .try_request(reqwest::Method::POST, q.endpoint(), q.to_json()?)
+            .try_request(RequestOptions {
+                endpoint: q.endpoint(),
+                body: Some(q.to_json()?),
+                ..Default::default()
+            })
             .await?;
 
         let body = res.text().await?;
@@ -126,6 +130,27 @@ impl RqliteClient {
             .cloned()
             .ok_or_else(|| anyhow::anyhow!("No results found in response: {}", body))
     }
+
+    // To be implemented for different types of queries such as batch or qeued queries
+    //async fn exec_many<T>(
+    //    &self,
+    //    qs: Vec<query::RqliteQuery>,
+    //    params: impl Into<Option<Vec<RequestQueryParam>>>,
+    //) -> anyhow::Result<Vec<RqliteResult<T>>>
+    //where
+    //    T: serde::de::DeserializeOwned + Clone,
+    //{
+    //    let args = QueryArgs::from(qs);
+    //    let body = serde_json::to_string(&args)?;
+    //
+    //    let res = self.try_request("request", body, None).await?;
+    //
+    //    let body = res.text().await?;
+    //
+    //    let response = serde_json::from_str::<RqliteResponseRaw<T>>(&body)?;
+    //
+    //    Ok(response.results)
+    //}
 
     /// Executes a query that returns results.
     /// Returns a vector of [`Row`]s if the query was successful, otherwise an error.
@@ -178,7 +203,11 @@ impl RqliteClient {
         let body = serde_json::to_string(&batch)?;
 
         let res = self
-            .try_request(reqwest::Method::POST, "db/request", body)
+            .try_request(RequestOptions {
+                endpoint: "db/request".to_string(),
+                body: Some(body),
+                ..Default::default()
+            })
             .await?;
 
         let body = res.text().await?;
@@ -191,7 +220,14 @@ impl RqliteClient {
     /// Checks if the rqlite cluster is ready.
     /// Returns `true` if the cluster is ready, otherwise `false`.
     pub async fn ready(&self) -> bool {
-        match self.try_request(reqwest::Method::GET, "readyz", None).await {
+        match self
+            .try_request(RequestOptions {
+                endpoint: "readyz".to_string(),
+                method: reqwest::Method::GET,
+                ..Default::default()
+            })
+            .await
+        {
             Ok(res) => res.status() == reqwest::StatusCode::OK,
             Err(_) => false,
         }
@@ -201,7 +237,16 @@ impl RqliteClient {
     /// Returns a vector of [`Node`]s.
     pub async fn nodes(&self) -> anyhow::Result<Vec<Node>> {
         let res = self
-            .try_request(reqwest::Method::GET, "nodes?ver=2", None)
+            .try_request(RequestOptions {
+                endpoint: "nodes".to_string(),
+                params: Some(
+                    RqliteQueryParams::new()
+                        .ver("2".to_string())
+                        .to_request_query_params(),
+                ),
+                method: reqwest::Method::GET,
+                ..Default::default()
+            })
             .await?;
 
         let body = res.text().await?;
@@ -225,7 +270,12 @@ impl RqliteClient {
         let body = serde_json::to_string(&RemoveNodeRequest { id: id.to_string() })?;
 
         let res = self
-            .try_request(reqwest::Method::DELETE, "remove", body)
+            .try_request(RequestOptions {
+                endpoint: "remove".to_string(),
+                body: Some(body),
+                method: reqwest::Method::DELETE,
+                ..Default::default()
+            })
             .await?;
 
         if res.status().is_success() {
