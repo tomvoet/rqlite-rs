@@ -154,8 +154,9 @@ impl RqliteClient {
 
     /// Executes a query that returns results.
     /// Returns a vector of [`Row`]s if the query was successful, otherwise an error.
-    pub async fn fetch<Q: TryInto<RqliteQuery>>(&self, q: Q) -> anyhow::Result<Vec<Row>>
+    pub async fn fetch<Q>(&self, q: Q) -> anyhow::Result<Vec<Row>>
     where
+        Q: TryInto<RqliteQuery>,
         anyhow::Error: From<Q::Error>,
     {
         let result = self
@@ -171,8 +172,9 @@ impl RqliteClient {
     /// Executes a query that does not return any results.
     /// Returns the [`QueryResult`] if the query was successful, otherwise an error.
     /// Is primarily used for `INSERT`, `UPDATE`, `DELETE` and `CREATE` queries.
-    pub async fn exec<Q: TryInto<RqliteQuery>>(&self, q: Q) -> anyhow::Result<QueryResult>
+    pub async fn exec<Q>(&self, q: Q) -> anyhow::Result<QueryResult>
     where
+        Q: TryInto<RqliteQuery>,
         anyhow::Error: From<Q::Error>,
     {
         let query_result = self.exec_query::<QueryResult>(q.try_into()?).await?;
