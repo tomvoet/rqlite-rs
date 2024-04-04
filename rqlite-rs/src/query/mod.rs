@@ -2,6 +2,7 @@ use serde::Serialize;
 use serde_json;
 
 pub mod arguments;
+use crate::error::QueryBuilderError;
 pub(crate) use arguments::RqliteArgument;
 
 /// A query to be executed on the rqlite cluster.
@@ -13,7 +14,7 @@ pub struct RqliteQuery {
 }
 
 impl TryInto<RqliteQuery> for String {
-    type Error = anyhow::Error;
+    type Error = QueryBuilderError;
 
     /// Attempts to convert a string into a [`RqliteQuery`].
     /// Returns a `Result` with the query if the string is valid.
@@ -31,7 +32,7 @@ impl TryInto<RqliteQuery> for String {
 }
 
 impl TryInto<RqliteQuery> for &str {
-    type Error = anyhow::Error;
+    type Error = QueryBuilderError;
 
     /// Attempts to convert a string into a [`RqliteQuery`].
     /// Returns a `Result` with the query if the string is valid.
@@ -45,6 +46,18 @@ impl TryInto<RqliteQuery> for &str {
             args: vec![],
             op,
         })
+    }
+}
+
+impl TryInto<RqliteQuery> for Result<RqliteQuery, QueryBuilderError> {
+    type Error = QueryBuilderError;
+
+    /// Attempts to convert a `Result` into a [`RqliteQuery`].
+    /// Returns a `Result` with the query if the result is valid.
+    /// Fails if the result is an error.
+    /// This allows avoiding the use of `?` in the `query!` macro.
+    fn try_into(self) -> Result<RqliteQuery, Self::Error> {
+        self
     }
 }
 
@@ -93,10 +106,10 @@ impl From<Vec<RqliteQuery>> for QueryArgs {
 }
 
 impl RqliteQuery {
-    pub(crate) fn into_json(self) -> anyhow::Result<String> {
+    pub(crate) fn into_json(self) -> Result<String, serde_json::Error> {
         let args = QueryArgs::from(self);
 
-        Ok(serde_json::to_string(&args)?)
+        serde_json::to_string(&args)
     }
 
     pub(crate) fn endpoint(&self) -> String {
@@ -127,7 +140,7 @@ pub enum Operation {
 }
 
 impl Operation {
-    pub fn from_query_string(query: &str) -> anyhow::Result<Self> {
+    pub fn from_query_string(query: &str) -> Result<Operation, QueryBuilderError> {
         match query.to_lowercase() {
             q if q.starts_with("create") => Ok(Operation::Create),
             q if q.starts_with("select") => Ok(Operation::Select),
@@ -136,7 +149,7 @@ impl Operation {
             q if q.starts_with("insert") => Ok(Operation::Insert),
             q if q.starts_with("pragma") => Ok(Operation::Pragma),
             q if q.starts_with("drop") => Ok(Operation::Drop),
-            _ => anyhow::bail!("Invalid query"),
+            _ => Err(QueryBuilderError::InvalidOperation(query.to_string())),
         }
     }
 }
@@ -145,58 +158,71 @@ impl Operation {
 /// Returns a `Result` with an [`RqliteQuery`] if the query is valid.
 #[macro_export]
 macro_rules! query {
+    // This is the base case, it only accepts a query string.
+    // In this macro named blocks are used to allow using early returns.
     ( $query:expr ) => {{
-        let op = $crate::query::Operation::from_query_string($query)?;
+        'blk: {
+            let op = match $crate::query::Operation::from_query_string($query) {
+                Ok(op) => op,
+                Err(_) => break 'blk Err($crate::error::QueryBuilderError::InvalidQuery($query.to_string())),
+            };
 
-        Ok($crate::query::RqliteQuery {
-            query: $query.to_string(),
-            args: vec![],
-            op,
-        }) as anyhow::Result<$crate::query::RqliteQuery>
+            Ok($crate::query::RqliteQuery {
+                query: $query.to_string(),
+                args: vec![],
+                op,
+            })
+        }
     }};
     ( $query:expr, $( $args:expr ),* ) => {{
-        let Ok(query) = $crate::query!($query) else {
-            // This is not unreachable.
-            #[allow(unreachable_code)]
-            return anyhow::bail!("Invalid query");
-        };
+        'blk: {
+            let Ok(query) = ($crate::query!($query)) else {
+                // This is not unreachable.
+                #[allow(unreachable_code)]
+                break 'blk Err($crate::error::QueryBuilderError::InvalidQuery($query.to_string()));
+            };
 
-        let param_count = $query.matches("?").count();
+            let param_count = $query.matches("?").count();
 
-        let mut args = vec![];
+            let mut args = vec![];
 
-        $(
-            let arg = $crate::arg!($args);
-            args.push(arg);
-        )*
+            $(
+                let arg = $crate::arg!($args);
+                args.push(arg);
+            )*
 
-        let argc = args.len();
+            let argc = args.len();
 
-        if argc != param_count {
-            anyhow::bail!("Invalid number of arguments, expected {}, got {}", param_count, argc);
+            if argc != param_count {
+                break 'blk Err($crate::error::QueryBuilderError::InvalidArgumentCount(param_count, argc));
+            }
+
+            Ok($crate::query::RqliteQuery {
+                query: query.query,
+                args,
+                op: query.op,
+            })
         }
-
-        Ok($crate::query::RqliteQuery {
-            query: query.query,
-            args,
-            op: query.op,
-        }) as anyhow::Result<$crate::query::RqliteQuery>
     }};
 }
 
 #[cfg(test)]
 mod tests {
     #[test]
-    fn test_query_macro() -> anyhow::Result<()> {
+    fn test_query_macro() {
         let query = query!("SELECT * FROM foo");
         assert!(query.is_ok());
+        assert_eq!(query.unwrap().args.len(), 0);
 
         let query = query!("SELECT * FROM foo WHERE id = ?", 1i64);
         assert!(query.is_ok());
+        assert_eq!(query.unwrap().args.len(), 1);
 
-        let query = query!("SELECT * FROM foo WHERE id = ? AND name = ?", 1i64, "foo")?;
-        assert_eq!(query.args.len(), 2);
+        let query = query!("SELECT * FROM foo WHERE id = ? AND name = ?", 1i64, "foo");
+        assert!(query.is_ok());
+        assert_eq!(query.unwrap().args.len(), 2);
 
-        Ok(())
+        let query = query!("SELECT * FROM foo WHERE id = ? AND name = ?", 1i64);
+        assert!(query.is_err());
     }
 }

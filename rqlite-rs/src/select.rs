@@ -12,7 +12,7 @@ pub struct RqliteSelectResults {
 }
 
 impl RqliteSelectResults {
-    pub fn rows(&self) -> anyhow::Result<Vec<Row>> {
+    pub fn rows(&self) -> Vec<Row> {
         let mut rows = Vec::new();
 
         let mut columns = vec![];
@@ -42,6 +42,6 @@ impl RqliteSelectResults {
             }
         }
 
-        Ok(rows)
+        rows
     }
 }
