@@ -38,7 +38,7 @@ impl TryInto<RqliteQuery> for &str {
     /// Fails if the query does not start with a valid operation.
     /// See [`Operation`] for a list of valid operations.
     fn try_into(self) -> Result<RqliteQuery, Self::Error> {
-        let op = Operation::from_query_string(&self)?;
+        let op = Operation::from_query_string(self)?;
 
         Ok(RqliteQuery {
             query: self.to_string(),
@@ -93,7 +93,7 @@ impl From<Vec<RqliteQuery>> for QueryArgs {
 }
 
 impl RqliteQuery {
-    pub(crate) fn to_json(self) -> anyhow::Result<String> {
+    pub(crate) fn into_json(self) -> anyhow::Result<String> {
         let args = QueryArgs::from(self);
 
         Ok(serde_json::to_string(&args)?)
@@ -143,38 +143,9 @@ impl Operation {
 
 /// A macro for creating a query.
 /// Returns a `Result` with an [`RqliteQuery`] if the query is valid.
-/// # Examples
-/// ```
-/// # use rqlite_rs::prelude::*;
-/// let query = query!("SELECT * FROM foo");
-/// assert!(query.is_ok());
-///
-/// let query = query!("SELECT * FROM foo WHERE id = ?", 1);
-/// assert!(query.is_ok());
-/// assert_eq!(query.unwrap().args.len(), 1);
-/// ```
 #[macro_export]
 macro_rules! query {
     ( $query:expr ) => {{
-        let lower = $query.to_lowercase();
-
-        //let op = if lower.starts_with("create") {
-        //    $crate::query::Operation::Create
-        //} else if lower.starts_with("select") {
-        //    $crate::query::Operation::Select
-        //} else if lower.starts_with("update") {
-        //    $crate::query::Operation::Update
-        //} else if lower.starts_with("delete") {
-        //    $crate::query::Operation::Delete
-        //} else if lower.starts_with("insert") {
-        //    $crate::query::Operation::Insert
-        //} else if lower.starts_with("pragma") {
-        //    $crate::query::Operation::Pragma
-        //} else if lower.starts_with("drop") {
-        //    $crate::query::Operation::Drop
-        //} else {
-        //    anyhow::bail!("Invalid query");
-        //};
         let op = $crate::query::Operation::from_query_string($query)?;
 
         Ok($crate::query::RqliteQuery {
@@ -211,4 +182,21 @@ macro_rules! query {
             op: query.op,
         }) as anyhow::Result<$crate::query::RqliteQuery>
     }};
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_query_macro() -> anyhow::Result<()> {
+        let query = query!("SELECT * FROM foo");
+        assert!(query.is_ok());
+
+        let query = query!("SELECT * FROM foo WHERE id = ?", 1i64);
+        assert!(query.is_ok());
+
+        let query = query!("SELECT * FROM foo WHERE id = ? AND name = ?", 1i64, "foo")?;
+        assert_eq!(query.args.len(), 2);
+
+        Ok(())
+    }
 }

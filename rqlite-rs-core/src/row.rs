@@ -86,7 +86,7 @@ impl Row {
         Ok(value)
     }
 
-    pub fn values(&self) -> &Box<[Value]> {
+    pub fn values(&self) -> &[Value] {
         &self.values
     }
 

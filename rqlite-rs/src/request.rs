@@ -28,7 +28,7 @@ impl RequestOptions {
     ) -> reqwest::RequestBuilder {
         let mut req = client.request(
             self.method.clone(),
-            &format!("http://{}/{}", host, self.endpoint),
+            format!("http://{}/{}", host, self.endpoint),
         );
 
         if let Some(body) = &self.body {
@@ -36,7 +36,7 @@ impl RequestOptions {
         }
 
         if let Some(params) = &self.params {
-            req = req.query(&params.clone().to_reqwest_query());
+            req = req.query(&params.clone().into_reqwest_query());
         }
 
         req
@@ -50,7 +50,7 @@ pub(crate) enum RequestQueryParam {
 }
 
 impl RequestQueryParam {
-    fn to_reqwest_query(self) -> (String, String) {
+    fn into_reqwest_query(self) -> (String, String) {
         match self {
             RequestQueryParam::Bool(k) => (k, "true".to_string()),
             RequestQueryParam::KV(k, v) => (k, v),
@@ -58,22 +58,16 @@ impl RequestQueryParam {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub(crate) struct RequestQueryParams(Vec<RequestQueryParam>);
-
-impl Default for RequestQueryParams {
-    fn default() -> Self {
-        RequestQueryParams(Vec::new())
-    }
-}
 
 impl RequestQueryParams {
     fn new() -> Self {
         RequestQueryParams::default()
     }
 
-    pub(crate) fn to_reqwest_query(self) -> Vec<(String, String)> {
-        self.0.into_iter().map(|p| p.to_reqwest_query()).collect()
+    pub(crate) fn into_reqwest_query(self) -> Vec<(String, String)> {
+        self.0.into_iter().map(|p| p.into_reqwest_query()).collect()
     }
 }
 
@@ -118,7 +112,7 @@ pub enum RqliteQueryParam {
 }
 
 impl RqliteQueryParam {
-    fn to_request_query_param(self) -> RequestQueryParam {
+    fn into_request_query_param(self) -> RequestQueryParam {
         match self {
             RqliteQueryParam::Pretty => RequestQueryParam::Bool("pretty".to_string()),
             RqliteQueryParam::Timings => RequestQueryParam::Bool("timings".to_string()),
@@ -198,19 +192,19 @@ impl RqliteQueryParams {
         self
     }
 
-    pub(crate) fn to_request_query_params(self) -> RequestQueryParams {
+    pub(crate) fn into_request_query_params(self) -> RequestQueryParams {
         let mut params = RequestQueryParams::new();
 
         for p in self.0 {
-            params.0.push(p.to_request_query_param());
+            params.0.push(p.into_request_query_param());
         }
 
         params
     }
 }
 
-impl Into<RequestQueryParams> for RqliteQueryParams {
-    fn into(self) -> RequestQueryParams {
-        self.to_request_query_params()
+impl From<RqliteQueryParams> for RequestQueryParams {
+    fn from(params: RqliteQueryParams) -> Self {
+        params.into_request_query_params()
     }
 }

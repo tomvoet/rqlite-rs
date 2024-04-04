@@ -21,7 +21,8 @@ pub struct RqliteClient {
     hosts: Arc<RwLock<VecDeque<String>>>,
 }
 
-/// A builder for creating a [`RqliteClient`].s
+/// A builder for creating a [`RqliteClient`].
+#[derive(Default)]
 pub struct RqliteClientBuilder {
     hosts: Vec<String>,
 }
@@ -29,7 +30,7 @@ pub struct RqliteClientBuilder {
 impl RqliteClientBuilder {
     /// Creates a new [`RqliteClientBuilder`].
     pub fn new() -> Self {
-        RqliteClientBuilder { hosts: Vec::new() }
+        RqliteClientBuilder::default()
     }
 
     /// Adds a known host to the builder.
@@ -115,7 +116,7 @@ impl RqliteClient {
         let res = self
             .try_request(RequestOptions {
                 endpoint: q.endpoint(),
-                body: Some(q.to_json()?),
+                body: Some(q.into_json()?),
                 ..Default::default()
             })
             .await?;
@@ -247,7 +248,7 @@ impl RqliteClient {
                 params: Some(
                     RqliteQueryParams::new()
                         .transaction()
-                        .to_request_query_params(),
+                        .into_request_query_params(),
                 ),
                 ..Default::default()
             })
@@ -280,7 +281,7 @@ impl RqliteClient {
         self.try_request(RequestOptions {
             endpoint: "db/execute".to_string(),
             body: Some(body),
-            params: Some(RqliteQueryParams::new().queue().to_request_query_params()),
+            params: Some(RqliteQueryParams::new().queue().into_request_query_params()),
             ..Default::default()
         })
         .await?;
@@ -313,7 +314,7 @@ impl RqliteClient {
                 params: Some(
                     RqliteQueryParams::new()
                         .ver("2".to_string())
-                        .to_request_query_params(),
+                        .into_request_query_params(),
                 ),
                 method: reqwest::Method::GET,
                 ..Default::default()
