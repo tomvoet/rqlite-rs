@@ -5,6 +5,7 @@ use std::{
 
 use crate::{
     batch::BatchResult,
+    error::{ClientBuilderError, RequestError},
     node::{Node, NodeResponse, RemoveNodeRequest},
     query::{self, QueryArgs, RqliteQuery},
     query_result::QueryResult,
@@ -40,9 +41,9 @@ impl RqliteClientBuilder {
     }
 
     /// Builds the [`RqliteClient`] with the provided hosts.
-    pub fn build(self) -> anyhow::Result<RqliteClient> {
+    pub fn build(self) -> Result<RqliteClient, ClientBuilderError> {
         if self.hosts.is_empty() {
-            return Err(anyhow::anyhow!("No hosts provided"));
+            return Err(ClientBuilderError::NoHostsProvided);
         }
 
         let hosts = VecDeque::from(self.hosts);
@@ -71,7 +72,10 @@ impl RqliteClient {
         hosts.rotate_left(1);
     }
 
-    async fn try_request(&self, options: RequestOptions) -> anyhow::Result<reqwest::Response> {
+    async fn try_request(
+        &self,
+        options: RequestOptions,
+    ) -> Result<reqwest::Response, RequestError> {
         let (mut host, host_count) = {
             let hosts = self.hosts.read().unwrap();
             (hosts[0].clone(), hosts.len())
@@ -83,20 +87,26 @@ impl RqliteClient {
             match req.send().await {
                 Ok(res) if res.status().is_success() => return Ok(res),
                 Ok(res) => {
-                    return Err(anyhow::anyhow!(
-                        "Request failed: {} - {}",
-                        res.status(),
-                        res.text().await?
-                    ))
+                    return Err(RequestError::ReqwestError {
+                        status: res.status(),
+                        body: match res.text().await {
+                            Ok(body) => body,
+                            Err(e) => format!("Failed to read body: {}", e),
+                        },
+                    });
                 }
                 Err(e) => self.handle_request_error(e, &mut host)?,
             }
         }
 
-        Err(anyhow::anyhow!("No hosts available"))
+        Err(RequestError::NoAvailableHosts)
     }
 
-    fn handle_request_error(&self, e: reqwest::Error, host: &mut String) -> anyhow::Result<()> {
+    fn handle_request_error(
+        &self,
+        e: reqwest::Error,
+        host: &mut String,
+    ) -> Result<(), RequestError> {
         if e.is_connect() || e.is_timeout() {
             let previous_host = host.clone();
             self.shift_host();
@@ -105,31 +115,35 @@ impl RqliteClient {
             println!("Connection to {} failed, trying {}", previous_host, *host);
             Ok(())
         } else {
-            Err(e.into())
+            Err(RequestError::SwitchoverWrongError(e.to_string()))
         }
     }
 
-    async fn exec_query<T>(&self, q: query::RqliteQuery) -> anyhow::Result<RqliteResult<T>>
+    async fn exec_query<T>(&self, q: query::RqliteQuery) -> Result<RqliteResult<T>, RequestError>
     where
         T: serde::de::DeserializeOwned + Clone,
     {
         let res = self
             .try_request(RequestOptions {
                 endpoint: q.endpoint(),
-                body: Some(q.into_json()?),
+                body: Some(
+                    q.into_json()
+                        .map_err(RequestError::FailedParseRequestBody)?,
+                ),
                 ..Default::default()
             })
             .await?;
 
         let body = res.text().await?;
 
-        let response = serde_json::from_str::<RqliteResponseRaw<T>>(&body)?;
+        let response = serde_json::from_str::<RqliteResponseRaw<T>>(&body)
+            .map_err(RequestError::FailedParseResponseBody)?;
 
         response
             .results
             .first()
             .cloned()
-            .ok_or_else(|| anyhow::anyhow!("No results found in response: {}", body))
+            .ok_or_else(|| RequestError::NoRowsReturned)
     }
 
     // To be implemented for different types of queries such as batch or qeued queries
@@ -155,34 +169,34 @@ impl RqliteClient {
 
     /// Executes a query that returns results.
     /// Returns a vector of [`Row`]s if the query was successful, otherwise an error.
-    pub async fn fetch<Q>(&self, q: Q) -> anyhow::Result<Vec<Row>>
+    pub async fn fetch<Q>(&self, q: Q) -> Result<Vec<Row>, RequestError>
     where
         Q: TryInto<RqliteQuery>,
-        anyhow::Error: From<Q::Error>,
+        RequestError: From<Q::Error>,
     {
         let result = self
             .exec_query::<RqliteSelectResults>(q.try_into()?)
             .await?;
 
         match result {
-            RqliteResult::Success(qr) => qr.rows(),
-            RqliteResult::Error(qe) => Err(anyhow::anyhow!(qe.error)),
+            RqliteResult::Success(qr) => Ok(qr.rows()),
+            RqliteResult::Error(qe) => Err(RequestError::DatabaseError(qe.error)),
         }
     }
 
     /// Executes a query that does not return any results.
     /// Returns the [`QueryResult`] if the query was successful, otherwise an error.
     /// Is primarily used for `INSERT`, `UPDATE`, `DELETE` and `CREATE` queries.
-    pub async fn exec<Q>(&self, q: Q) -> anyhow::Result<QueryResult>
+    pub async fn exec<Q>(&self, q: Q) -> Result<QueryResult, RequestError>
     where
         Q: TryInto<RqliteQuery>,
-        anyhow::Error: From<Q::Error>,
+        RequestError: From<Q::Error>,
     {
         let query_result = self.exec_query::<QueryResult>(q.try_into()?).await?;
 
         match query_result {
             RqliteResult::Success(qr) => Ok(qr),
-            RqliteResult::Error(qe) => Err(anyhow::anyhow!(qe.error)),
+            RqliteResult::Error(qe) => Err(RequestError::DatabaseError(qe.error)),
         }
     }
 
@@ -194,10 +208,10 @@ impl RqliteClient {
     /// If a query fails, the corresponding result will contain an error.
     ///
     /// For more information on batch queries, see the [rqlite documentation](https://rqlite.io/docs/api/bulk-api/).
-    pub async fn batch<T>(&self, qs: Vec<T>) -> anyhow::Result<Vec<RqliteResult<BatchResult>>>
+    pub async fn batch<Q>(&self, qs: Vec<Q>) -> Result<Vec<RqliteResult<BatchResult>>, RequestError>
     where
-        T: TryInto<RqliteQuery>,
-        anyhow::Error: From<T::Error>,
+        Q: TryInto<RqliteQuery>,
+        RequestError: From<Q::Error>,
     {
         let queries = qs
             .into_iter()
@@ -205,7 +219,7 @@ impl RqliteClient {
             .collect::<Result<Vec<RqliteQuery>, _>>()?;
 
         let batch = QueryArgs::from(queries);
-        let body = serde_json::to_string(&batch)?;
+        let body = serde_json::to_string(&batch).map_err(RequestError::FailedParseRequestBody)?;
 
         let res = self
             .try_request(RequestOptions {
@@ -217,7 +231,9 @@ impl RqliteClient {
 
         let body = res.text().await?;
 
-        let results = serde_json::from_str::<RqliteResponseRaw<BatchResult>>(&body)?.results;
+        let results = serde_json::from_str::<RqliteResponseRaw<BatchResult>>(&body)
+            .map_err(RequestError::FailedParseResponseBody)?
+            .results;
 
         Ok(results)
     }
@@ -228,10 +244,13 @@ impl RqliteClient {
     /// Returns a vector of [`RqliteResult`]s.
     ///
     /// For more information on transactions, see the [rqlite documentation](https://rqlite.io/docs/api/api/#transactions).
-    pub async fn transaction<T>(&self, qs: Vec<T>) -> anyhow::Result<Vec<RqliteResult<QueryResult>>>
+    pub async fn transaction<Q>(
+        &self,
+        qs: Vec<Q>,
+    ) -> Result<Vec<RqliteResult<QueryResult>>, RequestError>
     where
-        T: TryInto<RqliteQuery>,
-        anyhow::Error: From<T::Error>,
+        Q: TryInto<RqliteQuery>,
+        RequestError: From<Q::Error>,
     {
         let queries = qs
             .into_iter()
@@ -239,7 +258,7 @@ impl RqliteClient {
             .collect::<Result<Vec<RqliteQuery>, _>>()?;
 
         let batch = QueryArgs::from(queries);
-        let body = serde_json::to_string(&batch)?;
+        let body = serde_json::to_string(&batch).map_err(RequestError::FailedParseRequestBody)?;
 
         let res = self
             .try_request(RequestOptions {
@@ -256,7 +275,9 @@ impl RqliteClient {
 
         let body = res.text().await?;
 
-        let results = serde_json::from_str::<RqliteResponseRaw<QueryResult>>(&body)?.results;
+        let results = serde_json::from_str::<RqliteResponseRaw<QueryResult>>(&body)
+            .map_err(RequestError::FailedParseResponseBody)?
+            .results;
 
         Ok(results)
     }
@@ -265,10 +286,10 @@ impl RqliteClient {
     /// This results in much higher write performance.
     ///
     /// For more information on queued queries, see the [rqlite documentation](https://rqlite.io/docs/api/queued-writes/).
-    pub async fn queue<T>(&self, qs: Vec<T>) -> anyhow::Result<()>
+    pub async fn queue<Q>(&self, qs: Vec<Q>) -> Result<(), RequestError>
     where
-        T: TryInto<RqliteQuery>,
-        anyhow::Error: From<T::Error>,
+        Q: TryInto<RqliteQuery>,
+        RequestError: From<Q::Error>,
     {
         let queries = qs
             .into_iter()
@@ -276,7 +297,7 @@ impl RqliteClient {
             .collect::<Result<Vec<RqliteQuery>, _>>()?;
 
         let batch = QueryArgs::from(queries);
-        let body = serde_json::to_string(&batch)?;
+        let body = serde_json::to_string(&batch).map_err(RequestError::FailedParseRequestBody)?;
 
         self.try_request(RequestOptions {
             endpoint: "db/execute".to_string(),
@@ -307,7 +328,7 @@ impl RqliteClient {
 
     /// Retrieves the nodes in the rqlite cluster.
     /// Returns a vector of [`Node`]s.
-    pub async fn nodes(&self) -> anyhow::Result<Vec<Node>> {
+    pub async fn nodes(&self) -> Result<Vec<Node>, RequestError> {
         let res = self
             .try_request(RequestOptions {
                 endpoint: "nodes".to_string(),
@@ -323,14 +344,15 @@ impl RqliteClient {
 
         let body = res.text().await?;
 
-        let response = serde_json::from_str::<NodeResponse>(&body)?;
+        let response = serde_json::from_str::<NodeResponse>(&body)
+            .map_err(RequestError::FailedParseResponseBody)?;
 
         Ok(response.nodes)
     }
 
     /// Retrieves current the leader of the rqlite cluster.
     /// Returns a [`Node`] if a leader is found, otherwise `None`.
-    pub async fn leader(&self) -> anyhow::Result<Option<Node>> {
+    pub async fn leader(&self) -> Result<Option<Node>, RequestError> {
         let nodes = self.nodes().await?;
 
         Ok(nodes.into_iter().find(|n| n.leader))
@@ -338,8 +360,9 @@ impl RqliteClient {
 
     /// Removes a node from the rqlite cluster.
     /// Returns Ok on success and Err in case of an error.
-    pub async fn remove_node(&self, id: &str) -> anyhow::Result<()> {
-        let body = serde_json::to_string(&RemoveNodeRequest { id: id.to_string() })?;
+    pub async fn remove_node(&self, id: &str) -> Result<(), RequestError> {
+        let body = serde_json::to_string(&RemoveNodeRequest { id: id.to_string() })
+            .map_err(RequestError::FailedParseRequestBody)?;
 
         let res = self
             .try_request(RequestOptions {
@@ -353,10 +376,12 @@ impl RqliteClient {
         if res.status().is_success() {
             Ok(())
         } else {
-            Err(anyhow::anyhow!(
+            Err(RequestError::DatabaseError(format!(
                 "Failed to remove node: {}",
-                res.text().await?
-            ))
+                res.text()
+                    .await
+                    .map_err(RequestError::FailedReadingResponse)?
+            )))
         }
     }
 }
