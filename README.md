@@ -23,7 +23,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rqlite-rs = "0.3.8"
+rqlite-rs = "0.3.11"
 ```
 
 ## Quick Start

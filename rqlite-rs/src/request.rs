@@ -39,8 +39,6 @@ impl RequestOptions {
             req = req.query(&params.clone().into_reqwest_query());
         }
 
-        println!("{:?}", req);
-
         req
     }
 
