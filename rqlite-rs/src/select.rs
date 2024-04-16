@@ -12,19 +12,19 @@ pub struct RqliteSelectResults {
 }
 
 impl RqliteSelectResults {
-    pub fn rows(&self) -> Vec<Row> {
+    pub fn rows(self) -> Vec<Row> {
         let mut rows = Vec::new();
 
         let mut columns = vec![];
         let mut column_names = HashMap::new();
 
-        for (index, column) in self.columns.iter().enumerate() {
-            let column = Column::new(
-                column.to_string(),
-                index,
-                self.types.get(index).unwrap().clone(),
-            );
-
+        for (index, (column, column_type)) in self
+            .columns
+            .into_iter()
+            .zip(self.types.into_iter())
+            .enumerate()
+        {
+            let column = Column::new(column, index, column_type);
             column_names.insert(column.name().to_string(), index);
             columns.push(column);
         }
@@ -32,12 +32,12 @@ impl RqliteSelectResults {
         let columns = Arc::new(columns);
         let column_names = Arc::new(column_names);
 
-        if let Some(values) = &self.values {
+        if let Some(values) = self.values {
             for row in values {
                 rows.push(Row::new(
                     &columns,
                     &column_names,
-                    row.clone().into_boxed_slice(), //TODO! unnecessary clone
+                    row.into_boxed_slice(), //TODO! unnecessary clone
                 ));
             }
         }

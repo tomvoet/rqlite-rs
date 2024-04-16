@@ -1,15 +1,16 @@
 use std::{
-    collections::VecDeque,
+    collections::{HashSet, VecDeque},
     sync::{Arc, RwLock},
 };
 
 use crate::{
     batch::BatchResult,
+    config::{RqliteClientConfig, RqliteClientConfigBuilder},
     error::{ClientBuilderError, RequestError},
     node::{Node, NodeResponse, RemoveNodeRequest},
     query::{self, QueryArgs, RqliteQuery},
     query_result::QueryResult,
-    request::{RequestOptions, RqliteQueryParams},
+    request::{RequestOptions, RqliteQueryParam, RqliteQueryParams},
     response::{RqliteResponseRaw, RqliteResult},
     select::RqliteSelectResults,
 };
@@ -20,12 +21,16 @@ use rqlite_rs_core::Row;
 pub struct RqliteClient {
     client: reqwest::Client,
     hosts: Arc<RwLock<VecDeque<String>>>,
+    config: RqliteClientConfig,
 }
 
 /// A builder for creating a [`RqliteClient`].
 #[derive(Default)]
 pub struct RqliteClientBuilder {
-    hosts: Vec<String>,
+    /// This uses a HashSet to ensure that no duplicate hosts are added.
+    hosts: HashSet<String>,
+    /// The configration for the client.
+    config: RqliteClientConfigBuilder,
 }
 
 impl RqliteClientBuilder {
@@ -36,7 +41,13 @@ impl RqliteClientBuilder {
 
     /// Adds a known host to the builder.
     pub fn known_host(mut self, host: impl ToString) -> Self {
-        self.hosts.push(host.to_string());
+        self.hosts.insert(host.to_string());
+        self
+    }
+
+    /// Adds a default query parameter to the builder.
+    pub fn default_query_params(mut self, params: Vec<RqliteQueryParam>) -> Self {
+        self.config = self.config.default_query_params(params);
         self
     }
 
@@ -46,7 +57,7 @@ impl RqliteClientBuilder {
             return Err(ClientBuilderError::NoHostsProvided);
         }
 
-        let hosts = VecDeque::from(self.hosts);
+        let hosts = VecDeque::from(self.hosts.into_iter().collect::<Vec<String>>());
 
         let mut headers = header::HeaderMap::new();
         headers.insert(
@@ -62,6 +73,7 @@ impl RqliteClientBuilder {
         Ok(RqliteClient {
             client,
             hosts: Arc::new(RwLock::new(hosts)),
+            config: self.config.build(),
         })
     }
 }
@@ -74,11 +86,15 @@ impl RqliteClient {
 
     async fn try_request(
         &self,
-        options: RequestOptions,
+        mut options: RequestOptions,
     ) -> Result<reqwest::Response, RequestError> {
         let (mut host, host_count) = {
             let hosts = self.hosts.read().unwrap();
             (hosts[0].clone(), hosts.len())
+        };
+
+        if let Some(default_params) = &self.config.default_query_params {
+            options.merge_default_query_params(default_params);
         };
 
         for _ in 0..host_count {
@@ -141,9 +157,9 @@ impl RqliteClient {
 
         response
             .results
-            .first()
-            .cloned()
-            .ok_or_else(|| RequestError::NoRowsReturned)
+            .into_iter()
+            .next()
+            .ok_or(RequestError::NoRowsReturned)
     }
 
     // To be implemented for different types of queries such as batch or qeued queries
