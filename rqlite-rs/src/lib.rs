@@ -5,9 +5,10 @@ pub mod response;
 pub use client::{RqliteClient, RqliteClientBuilder};
 pub use rqlite_rs_core::*;
 pub mod batch;
+mod config;
 pub mod error;
 pub mod node;
-mod request;
+pub mod request;
 pub(crate) mod select;
 
 #[cfg(feature = "macros")]

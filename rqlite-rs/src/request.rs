@@ -39,7 +39,17 @@ impl RequestOptions {
             req = req.query(&params.clone().into_reqwest_query());
         }
 
+        println!("{:?}", req);
+
         req
+    }
+
+    pub(crate) fn merge_default_query_params(&mut self, default_params: &RequestQueryParams) {
+        if let Some(params) = &mut self.params {
+            params.merge(default_params.clone());
+        } else {
+            self.params = Some(default_params.clone());
+        }
     }
 }
 
@@ -62,12 +72,16 @@ impl RequestQueryParam {
 pub(crate) struct RequestQueryParams(Vec<RequestQueryParam>);
 
 impl RequestQueryParams {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         RequestQueryParams::default()
     }
 
     pub(crate) fn into_reqwest_query(self) -> Vec<(String, String)> {
         self.0.into_iter().map(|p| p.into_reqwest_query()).collect()
+    }
+
+    pub(crate) fn merge(&mut self, other: RequestQueryParams) {
+        self.0.extend(other.0.clone());
     }
 }
 
@@ -134,7 +148,8 @@ impl RqliteQueryParam {
     }
 }
 
-pub struct RqliteQueryParams(Vec<RqliteQueryParam>);
+#[derive(Default)]
+pub(crate) struct RqliteQueryParams(Vec<RqliteQueryParam>);
 
 #[allow(dead_code)]
 impl RqliteQueryParams {
@@ -200,6 +215,12 @@ impl RqliteQueryParams {
         }
 
         params
+    }
+}
+
+impl From<Vec<RqliteQueryParam>> for RqliteQueryParams {
+    fn from(params: Vec<RqliteQueryParam>) -> Self {
+        RqliteQueryParams(params)
     }
 }
 
