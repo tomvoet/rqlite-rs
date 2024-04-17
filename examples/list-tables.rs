@@ -4,6 +4,9 @@ use rqlite_rs::prelude::*;
 pub struct Table {
     name: String,
 }
+// Also works with unnamed fields
+// #[derive(FromRow)]
+// pub struct Table(String);
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -18,9 +21,12 @@ async fn main() -> anyhow::Result<()> {
     let rows = client.fetch(query).await?;
 
     let tables = rows.into_typed::<Table>()?;
+    // You can also use tuples
+    // let tables = rows.into_typed::<(String,)>()?;
 
     for table in tables {
         println!("Table: {}", table.name);
+        //println!("Table: {}", table.0);
     }
 
     Ok(())
