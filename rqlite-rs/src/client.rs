@@ -32,7 +32,7 @@ pub struct RqliteClientBuilder {
     hosts: HashSet<String>,
     /// The configration for the client.
     config: RqliteClientConfigBuilder,
-    // The base64 encoded credentials used to make authorized requests to the Rqlite cluster 
+    // The base64 encoded credentials used to make authorized requests to the Rqlite cluster
     basic_auth: Option<String>,
 }
 
@@ -43,8 +43,8 @@ impl RqliteClientBuilder {
     }
 
     /// Adds basic auth credentials
-    pub fn auth(mut self, basic_auth: (&str, &str)) -> Self {
-        self.basic_auth = Some(general_purpose::STANDARD.encode(format!("{}:{}", basic_auth.0, basic_auth.1)));
+    pub fn auth(mut self, user: &str, password: &str) -> Self {
+        self.basic_auth = Some(general_purpose::STANDARD.encode(format!("{}:{}", user, password)));
         self
     }
 
@@ -73,15 +73,14 @@ impl RqliteClientBuilder {
             header::CONTENT_TYPE,
             header::HeaderValue::from_static("application/json"),
         );
-        
+
         if let Some(credentials) = self.basic_auth {
             let basic_auth_fmt = format!("Basic {}", credentials);
             headers.insert(
                 header::AUTHORIZATION,
-                header::HeaderValue::from_str(basic_auth_fmt.as_str()).expect("basic auth is malformed")
+                header::HeaderValue::from_str(basic_auth_fmt.as_str())?,
             );
         }
-        
 
         let client = reqwest::ClientBuilder::new()
             .timeout(std::time::Duration::from_secs(5))
@@ -120,15 +119,17 @@ impl RqliteClient {
 
             match req.send().await {
                 Ok(res) if res.status().is_success() => return Ok(res),
-                Ok(res) => {
-                    return Err(RequestError::ReqwestError {
-                        status: res.status(),
-                        body: match res.text().await {
-                            Ok(body) => body,
-                            Err(e) => format!("Failed to read body: {}", e),
-                        },
-                    });
-                }
+                Ok(res) => match res.status() {
+                    reqwest::StatusCode::UNAUTHORIZED => {
+                        return Err(RequestError::Unauthorized);
+                    }
+                    status => {
+                        return Err(RequestError::ReqwestError {
+                            body: res.text().await?,
+                            status,
+                        });
+                    }
+                },
                 Err(e) => self.handle_request_error(e, &mut host)?,
             }
         }

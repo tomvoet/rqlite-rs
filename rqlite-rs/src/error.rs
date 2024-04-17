@@ -23,6 +23,9 @@ pub enum ClientBuilderError {
     /// An error occurred while building the reqwest client.
     #[error("Reqwest Error: {0}")]
     ReqwestError(#[from] reqwest::Error),
+    /// Invalid Headers were provided to the client builder.
+    #[error("Invalid Headers: {0}")]
+    InvalidHeaders(#[from] reqwest::header::InvalidHeaderValue),
 }
 
 #[derive(Error, Debug)]
@@ -57,6 +60,9 @@ pub enum RequestError {
     /// The database returned an error.
     #[error("Database Error: {0}")]
     DatabaseError(String),
+    /// Unauthorized access to the rqlite cluster.
+    #[error("Unauthorized Access")]
+    Unauthorized,
 }
 
 // This is a conversion from the `Infallible` type to the `RequestError` type.

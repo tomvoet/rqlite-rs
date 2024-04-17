@@ -9,7 +9,7 @@ pub struct Table {
 async fn main() -> anyhow::Result<()> {
     let client = RqliteClientBuilder::new()
         .known_host("localhost:4001")
-        .auth(("username", "password"))
+        .auth("username", "password")
         .build()?;
 
     let query = rqlite_rs::query!(
