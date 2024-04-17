@@ -8,4 +8,6 @@ pub enum IntoTypedError {
     ColumnNotFound,
     #[error("Value not found")]
     ValueNotFound,
+    #[error("Expected {0} columns, found {1}")]
+    ColumnCountMismatch(usize, usize),
 }
