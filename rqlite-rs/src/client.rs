@@ -14,6 +14,7 @@ use crate::{
     response::{RqliteResponseRaw, RqliteResult},
     select::RqliteSelectResults,
 };
+use base64::{engine::general_purpose, Engine};
 use reqwest::header;
 use rqlite_rs_core::Row;
 
@@ -31,12 +32,20 @@ pub struct RqliteClientBuilder {
     hosts: HashSet<String>,
     /// The configration for the client.
     config: RqliteClientConfigBuilder,
+    // The base64 encoded credentials used to make authorized requests to the Rqlite cluster 
+    basic_auth: Option<String>,
 }
 
 impl RqliteClientBuilder {
     /// Creates a new [`RqliteClientBuilder`].
     pub fn new() -> Self {
         RqliteClientBuilder::default()
+    }
+
+    /// Adds basic auth credentials
+    pub fn auth(mut self, basic_auth: (&str, &str)) -> Self {
+        self.basic_auth = Some(general_purpose::STANDARD.encode(format!("{}:{}", basic_auth.0, basic_auth.1)));
+        self
     }
 
     /// Adds a known host to the builder.
@@ -64,6 +73,15 @@ impl RqliteClientBuilder {
             header::CONTENT_TYPE,
             header::HeaderValue::from_static("application/json"),
         );
+        
+        if let Some(credentials) = self.basic_auth {
+            let basic_auth_fmt = format!("Basic {}", credentials);
+            headers.insert(
+                header::AUTHORIZATION,
+                header::HeaderValue::from_str(basic_auth_fmt.as_str()).expect("basic auth is malformed")
+            );
+        }
+        
 
         let client = reqwest::ClientBuilder::new()
             .timeout(std::time::Duration::from_secs(5))

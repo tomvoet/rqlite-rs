@@ -24,3 +24,7 @@ path = "batch.rs"
 [[example]]
 name = "fallback-node"
 path = "fallback-node.rs"
+
+[[example]]
+name = "basic-auth"
+path = "basic-auth.rs"
