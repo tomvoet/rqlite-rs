@@ -5,7 +5,7 @@ pub mod response;
 pub use client::{RqliteClient, RqliteClientBuilder};
 pub use rqlite_rs_core::*;
 pub mod batch;
-mod config;
+pub mod config;
 pub mod error;
 pub mod node;
 pub mod request;

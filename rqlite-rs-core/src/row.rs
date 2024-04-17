@@ -86,6 +86,25 @@ impl Row {
         Ok(value)
     }
 
+    pub fn get_by_index_opt<T: serde::de::DeserializeOwned>(
+        &self,
+        index: usize,
+    ) -> Result<Option<T>, IntoTypedError> {
+        let value = self
+            .values
+            .get(index)
+            .ok_or(IntoTypedError::ValueNotFound)?;
+
+        match value {
+            Value::Null => Ok(None),
+            _ => {
+                let value = serde_json::from_value(value.clone())
+                    .map_err(IntoTypedError::ConversionError)?;
+                Ok(Some(value))
+            }
+        }
+    }
+
     pub fn values(&self) -> &[Value] {
         &self.values
     }

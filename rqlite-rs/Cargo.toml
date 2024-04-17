@@ -1,6 +1,6 @@
 [package]
 name = "rqlite-rs"
-version = "0.3.11"
+version = "0.3.12"
 edition = "2021"
 publish = true
 license = "MIT"
@@ -21,9 +21,9 @@ rustls-tls = ["reqwest/rustls-tls"]
 macros = ["rqlite-rs-macros"]
 
 [dependencies]
-rqlite-rs-macros = { version = "0.2.5", path = "../rqlite-rs-macros", optional = true }
-rqlite-rs-core = { version = "0.2.6", path = "../rqlite-rs-core" }
-reqwest = { version = "0.12.2", default-features = false }
+rqlite-rs-macros = { version = "0.2.6", path = "../rqlite-rs-macros", optional = true }
+rqlite-rs-core = { version = "0.2.7", path = "../rqlite-rs-core" }
+reqwest = { version = "0.12.3", default-features = false }
 base64 = "0.22.0"
 serde.workspace = true
 serde_json.workspace = true

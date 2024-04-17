@@ -40,7 +40,32 @@ pub fn derive_from_row(input: TokenStream) -> TokenStream {
             ));
         }
 
-        // TODO: Add support for unit and tuple structs
+        if let syn::Fields::Unnamed(fields) = &data.fields {
+            let field_vals = fields.unnamed.iter().enumerate().map(|(index, field)| {
+                let index = syn::Index::from(index);
+
+                match &field.ty {
+                    Type::Path(type_path)
+                        if type_path.path.segments.last().unwrap().ident == "Option" =>
+                    {
+                        quote! { row.get_by_index_opt(#index)? }
+                    }
+                    _ => quote! { row.get_by_index(#index)? },
+                }
+            });
+
+            let struct_name = &input.ident;
+
+            return TokenStream::from(quote!(
+                impl rqlite_rs::FromRow for #struct_name {
+                    fn from_row(row: rqlite_rs::Row) -> Result<Self, rqlite_rs::IntoTypedError> {
+                        Ok(#struct_name(
+                            #(#field_vals),*
+                        ))
+                    }
+                }
+            ));
+        }
     }
 
     TokenStream::from(
