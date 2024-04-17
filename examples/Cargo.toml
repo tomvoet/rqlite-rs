@@ -5,7 +5,7 @@ publish = false
 version = "0.0.0"
 
 [dev-dependencies]
-rqlite-rs = { version = "0.3.12", path = "../rqlite-rs" }
+rqlite-rs = { version = "0.3.13", path = "../rqlite-rs" }
 tokio = { version = "1.36.0", features = ["rt-multi-thread", "macros"] }
 anyhow = "1.0.81"
 
@@ -24,6 +24,10 @@ path = "batch.rs"
 [[example]]
 name = "fallback-node"
 path = "fallback-node.rs"
+
+[[example]]
+name = "basic-auth"
+path = "basic-auth.rs"
 
 [[example]]
 name = "https"
