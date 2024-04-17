@@ -2,6 +2,8 @@ use std::num::NonZeroU16;
 
 use serde::Serialize;
 
+use crate::config::Scheme;
+
 pub(crate) struct RequestOptions {
     pub(crate) method: reqwest::Method,
     pub(crate) endpoint: String,
@@ -25,10 +27,11 @@ impl RequestOptions {
         &self,
         client: &reqwest::Client,
         host: &str,
+        scheme: &Scheme,
     ) -> reqwest::RequestBuilder {
         let mut req = client.request(
             self.method.clone(),
-            format!("http://{}/{}", host, self.endpoint),
+            format!("{}://{}/{}", scheme, host, self.endpoint),
         );
 
         if let Some(body) = &self.body {

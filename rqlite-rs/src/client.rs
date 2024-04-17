@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     batch::BatchResult,
-    config::{RqliteClientConfig, RqliteClientConfigBuilder},
+    config::{self, RqliteClientConfig, RqliteClientConfigBuilder},
     error::{ClientBuilderError, RequestError},
     node::{Node, NodeResponse, RemoveNodeRequest},
     query::{self, QueryArgs, RqliteQuery},
@@ -51,6 +51,12 @@ impl RqliteClientBuilder {
         self
     }
 
+    /// Sets the scheme for the client.
+    pub fn scheme(mut self, scheme: config::Scheme) -> Self {
+        self.config = self.config.scheme(scheme);
+        self
+    }
+
     /// Builds the [`RqliteClient`] with the provided hosts.
     pub fn build(self) -> Result<RqliteClient, ClientBuilderError> {
         if self.hosts.is_empty() {
@@ -65,13 +71,16 @@ impl RqliteClientBuilder {
             header::HeaderValue::from_static("application/json"),
         );
 
-        let client = reqwest::ClientBuilder::new()
+        let mut client = reqwest::ClientBuilder::new()
             .timeout(std::time::Duration::from_secs(5))
-            .default_headers(headers)
-            .build()?;
+            .default_headers(headers);
+
+        if let Some(config::Scheme::Https) = self.config.scheme {
+            client = client.https_only(true)
+        }
 
         Ok(RqliteClient {
-            client,
+            client: client.build()?,
             hosts: Arc::new(RwLock::new(hosts)),
             config: self.config.build(),
         })
@@ -98,7 +107,7 @@ impl RqliteClient {
         };
 
         for _ in 0..host_count {
-            let req = options.to_reqwest_request(&self.client, host.as_str());
+            let req = options.to_reqwest_request(&self.client, host.as_str(), &self.config.scheme);
 
             match req.send().await {
                 Ok(res) if res.status().is_success() => return Ok(res),
