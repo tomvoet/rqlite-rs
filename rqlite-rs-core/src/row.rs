@@ -53,11 +53,11 @@ impl Row {
         &self,
         name: &str,
     ) -> Result<Option<T>, IntoTypedError> {
-        let index = self
-            .column_names
-            .get(name)
-            .ok_or(IntoTypedError::ColumnNotFound)?;
+        let Some(index) = self.column_names.get(name) else {
+            return Ok(None);
+        };
 
+        // Throw error here, because if the column exists, the value should exist
         let value = self
             .values
             .get(*index)
@@ -90,10 +90,9 @@ impl Row {
         &self,
         index: usize,
     ) -> Result<Option<T>, IntoTypedError> {
-        let value = self
-            .values
-            .get(index)
-            .ok_or(IntoTypedError::ValueNotFound)?;
+        let Some(value) = self.values.get(index) else {
+            return Ok(None);
+        };
 
         match value {
             Value::Null => Ok(None),
