@@ -12,23 +12,30 @@ anyhow = "1.0.81"
 [[example]]
 name = "list-tables"
 path = "list-tables.rs"
+doc-scrape-examples = true
+
 
 [[example]]
 name = "get-nodes"
 path = "get-nodes.rs"
+doc-scrape-examples = true
 
 [[example]]
 name = "batch"
 path = "batch.rs"
+doc-scrape-examples = true
 
 [[example]]
 name = "fallback-node"
 path = "fallback-node.rs"
+doc-scrape-examples = true
 
 [[example]]
 name = "basic-auth"
 path = "basic-auth.rs"
+doc-scrape-examples = true
 
 [[example]]
 name = "https"
 path = "https.rs"
+doc-scrape-examples = true

@@ -7,3 +7,4 @@ Cargo.lock
 /docs/source/.doctrees
 /docs/poetry.lock
 /docs/_source
+*.profraw
