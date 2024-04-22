@@ -64,9 +64,12 @@ impl TryInto<RqliteQuery> for Result<RqliteQuery, QueryBuilderError> {
 #[derive(Serialize, Debug)]
 struct QueryComponent(RqliteArgument);
 
+// This is a helper struct for serializing multiple queries with arguments.
 #[derive(Serialize, Debug)]
 pub(crate) struct QueryArgs(Vec<Vec<QueryComponent>>);
 
+// This is an internal helper, for creating a `QueryArgs` from a vector of `RqliteQuery`.
+// This is used for batch queries.
 impl From<RqliteQuery> for QueryArgs {
     fn from(query: RqliteQuery) -> Self {
         let mut args = Vec::new();
@@ -85,6 +88,8 @@ impl From<RqliteQuery> for QueryArgs {
     }
 }
 
+// This is an internal helper, for creating a `QueryArgs` from a vector of `RqliteQuery`.
+// This is used for batch queries.
 impl From<Vec<RqliteQuery>> for QueryArgs {
     fn from(queries: Vec<RqliteQuery>) -> Self {
         let mut args = Vec::new();
@@ -156,6 +161,19 @@ impl Operation {
 
 /// A macro for creating a query.
 /// Returns a `Result` with an [`RqliteQuery`] if the query is valid.
+/// The macro accepts a query string and optional arguments.
+///
+/// # Examples
+///
+/// ```
+/// use rqlite_rs::query;
+///
+/// let query = query!("SELECT * FROM foo");
+/// assert!(query.is_ok());
+///
+/// let query = query!("SELECT * FROM foo WHERE id = ? AND name = ?", 1i64, "bar");
+/// assert!(query.is_ok());
+/// ```
 #[macro_export]
 macro_rules! query {
     // This is the base case, it only accepts a query string.
@@ -208,21 +226,123 @@ macro_rules! query {
 
 #[cfg(test)]
 mod tests {
+    use crate::query::QueryArgs;
+
+    // This is a unit test for the query macro.
     #[test]
-    fn test_query_macro() {
+    fn unit_query_macro_correct_query_types() {
+        let query = query!("CREATE TABLE foo (id INTEGER PRIMARY KEY)");
+        assert!(query.is_ok());
+        assert_eq!(query.unwrap().op, crate::query::Operation::Create);
+
         let query = query!("SELECT * FROM foo");
         assert!(query.is_ok());
-        assert_eq!(query.unwrap().args.len(), 0);
+        assert_eq!(query.unwrap().op, crate::query::Operation::Select);
 
+        let query = query!("UPDATE foo SET name = 'bar' WHERE id = 1");
+        assert!(query.is_ok());
+        assert_eq!(query.unwrap().op, crate::query::Operation::Update);
+
+        let query = query!("DELETE FROM foo WHERE id = 1");
+        assert!(query.is_ok());
+        assert_eq!(query.unwrap().op, crate::query::Operation::Delete);
+
+        let query = query!("INSERT INTO foo (name) VALUES ('bar')");
+        assert!(query.is_ok());
+        assert_eq!(query.unwrap().op, crate::query::Operation::Insert);
+
+        let query = query!("PRAGMA table_info(foo)");
+        assert!(query.is_ok());
+        assert_eq!(query.unwrap().op, crate::query::Operation::Pragma);
+
+        let query = query!("DROP TABLE foo");
+        assert!(query.is_ok());
+        assert_eq!(query.unwrap().op, crate::query::Operation::Drop);
+    }
+
+    #[test]
+    fn unit_query_macro_incorrect_query_types() {
+        let query = query!("TEST * FROM foo");
+        assert!(query.is_err());
+    }
+
+    #[test]
+    fn unit_query_macro_query_args() {
         let query = query!("SELECT * FROM foo WHERE id = ?", 1i64);
         assert!(query.is_ok());
         assert_eq!(query.unwrap().args.len(), 1);
 
-        let query = query!("SELECT * FROM foo WHERE id = ? AND name = ?", 1i64, "foo");
-        assert!(query.is_ok());
-        assert_eq!(query.unwrap().args.len(), 2);
-
-        let query = query!("SELECT * FROM foo WHERE id = ? AND name = ?", 1i64);
+        let query = query!("SELECT * FROM foo WHERE id = ?", 1i64, "foo");
         assert!(query.is_err());
+        assert!(matches!(
+            query.unwrap_err(),
+            crate::error::QueryBuilderError::InvalidArgumentCount(1, 2)
+        ));
+    }
+
+    #[test]
+    fn unit_query_macro_try_into_from_string_slice() {
+        let query: Result<crate::query::RqliteQuery, crate::error::QueryBuilderError> =
+            "SELECT * FROM foo".try_into();
+        assert!(query.is_ok());
+        assert_eq!(query.unwrap().op, crate::query::Operation::Select);
+    }
+
+    #[test]
+    fn unit_query_macro_try_into_from_string() {
+        let query: Result<crate::query::RqliteQuery, crate::error::QueryBuilderError> =
+            "SELECT * FROM foo".to_string().try_into();
+        assert!(query.is_ok());
+        assert_eq!(query.unwrap().op, crate::query::Operation::Select);
+    }
+
+    #[test]
+    fn unit_query_macro_try_into_from_result_err() {
+        let query: Result<crate::query::RqliteQuery, crate::error::QueryBuilderError> = Err(
+            crate::error::QueryBuilderError::InvalidQuery("TEST * FROM foo".to_string()),
+        )
+        .try_into();
+        assert!(query.is_err());
+    }
+
+    #[test]
+    fn unit_query_macro_query_args_from_query() {
+        let query = query!("SELECT * FROM foo WHERE id = ?", 1i64);
+        assert!(query.is_ok());
+
+        let query_args = QueryArgs::from(query.unwrap());
+        assert_eq!(query_args.0.len(), 1);
+        assert_eq!(query_args.0[0].len(), 2);
+    }
+
+    #[test]
+    fn unit_query_macro_query_args_from_query_vec() {
+        let query_1 = query!("SELECT * FROM foo WHERE id = ?", 1i64);
+        let query_2 = query!("SELECT * FROM foo WHERE id = ?", 2i64);
+        assert!(query_1.is_ok());
+        assert!(query_2.is_ok());
+
+        let query_args = QueryArgs::from(vec![query_1.unwrap(), query_2.unwrap()]);
+        assert_eq!(query_args.0.len(), 2);
+        assert_eq!(query_args.0[0].len(), 2);
+        assert_eq!(query_args.0[1].len(), 2);
+    }
+
+    #[test]
+    fn unit_query_macro_query_to_json() {
+        let query = query!("SELECT * FROM foo WHERE id = ?", 1i64);
+        assert!(query.is_ok());
+
+        let json = query.unwrap().into_json();
+        assert_eq!(json.unwrap(), r#"[["SELECT * FROM foo WHERE id = ?",1]]"#);
+    }
+
+    #[test]
+    fn unit_query_macro_query_endpoint() {
+        let query = query!("SELECT * FROM foo WHERE id = ?", 1i64);
+        assert!(query.is_ok());
+
+        let endpoint = query.unwrap().endpoint();
+        assert_eq!(endpoint, "db/query");
     }
 }
