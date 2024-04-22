@@ -1,5 +1,5 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc = include_str!("../../lib.md")]
+#![doc = include_str!("lib.md")]
 
 pub mod client;
 pub mod query;
