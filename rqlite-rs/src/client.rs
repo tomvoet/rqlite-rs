@@ -1,6 +1,5 @@
 use std::{
-    collections::{HashSet, VecDeque},
-    sync::{Arc, RwLock},
+    collections::{HashSet, VecDeque}, fmt::Debug, sync::{Arc, RwLock}
 };
 
 use crate::{
@@ -180,6 +179,8 @@ impl RqliteClient {
 
         let body = res.text().await?;
 
+        dbg!(&body);
+        
         let response = serde_json::from_str::<RqliteResponseRaw<T>>(&body)
             .map_err(RequestError::FailedParseResponseBody)?;
 
@@ -237,6 +238,8 @@ impl RqliteClient {
         RequestError: From<Q::Error>,
     {
         let query_result = self.exec_query::<QueryResult>(q.try_into()?).await?;
+
+        dbg!(&query_result);
 
         match query_result {
             RqliteResult::Success(qr) => Ok(qr),
