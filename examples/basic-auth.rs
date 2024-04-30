@@ -9,14 +9,20 @@ pub struct Table {
 async fn main() -> anyhow::Result<()> {
     let client = RqliteClientBuilder::new()
         .known_host("localhost:4001")
-        .auth("tango", "test")
+        .auth("username", "password")
         .build()?;
 
     let query = rqlite_rs::query!(
-        "insert into container_images values('y2Set5DHfrhDW6H6lfs8D2PFAR-BXVLs', 'alpine', 'latest', current_timestamp)"
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
     )?;
 
-    let rows = client.exec(query).await?;
-    
+    let rows = client.fetch(query).await?;
+
+    let tables = rows.into_typed::<Table>()?;
+
+    for table in tables {
+        println!("Table: {}", table.name);
+    }
+
     Ok(())
 }
