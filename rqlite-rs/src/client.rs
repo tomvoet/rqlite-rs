@@ -1,5 +1,6 @@
 use std::{
-    collections::{HashSet, VecDeque}, fmt::Debug, sync::{Arc, RwLock}
+    collections::{HashSet, VecDeque},
+    sync::{Arc, RwLock},
 };
 
 use crate::{
@@ -236,7 +237,7 @@ impl RqliteClient {
         RequestError: From<Q::Error>,
     {
         let query_result = self.exec_query::<QueryResult>(q.try_into()?).await?;
-        
+
         match query_result {
             RqliteResult::Success(qr) => Ok(qr),
             RqliteResult::Error(qe) => Err(RequestError::DatabaseError(qe.error)),
