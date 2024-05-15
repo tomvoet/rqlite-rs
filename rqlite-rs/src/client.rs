@@ -49,6 +49,10 @@ impl RqliteClientBuilder {
     }
 
     /// Adds a known host to the builder.
+    /// It is important not to add the scheme to the host.
+    /// The scheme is set using the `scheme` method.
+    /// The host should be in the format `hostname:port`.
+    /// For example, `localhost:4001`.
     pub fn known_host(mut self, host: impl ToString) -> Self {
         self.hosts.insert(host.to_string());
         self
@@ -427,5 +431,72 @@ impl RqliteClient {
                     .map_err(RequestError::FailedReadingResponse)?
             )))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_rqlite_client_builder_success() {
+        let client = RqliteClientBuilder::new()
+            .known_host("http://localhost:4001")
+            .scheme(config::Scheme::Http)
+            .build();
+
+        assert!(client.is_ok());
+    }
+
+    #[test]
+    fn unit_rqlite_client_builder_no_hosts() {
+        let client = RqliteClientBuilder::new().build();
+
+        assert!(matches!(client, Err(ClientBuilderError::NoHostsProvided)));
+    }
+
+    #[test]
+    fn unit_rqlite_client_builder_https() {
+        let client = RqliteClientBuilder::new()
+            .known_host("http://localhost:4001")
+            .scheme(config::Scheme::Https)
+            .build();
+
+        let config = client.unwrap().config;
+
+        assert!(matches!(config.scheme, config::Scheme::Https));
+    }
+
+    #[test]
+    fn unit_rqlite_client_builder_auth() {
+        let client = RqliteClientBuilder::new()
+            .known_host("http://localhost:4001")
+            .auth("user", "password")
+            .build();
+
+        assert!(client.is_ok());
+    }
+
+    #[test]
+    fn unit_rqlite_client_builder_default_query_params() {
+        let client = RqliteClientBuilder::new()
+            .known_host("http://localhost:4001")
+            .default_query_params(vec![RqliteQueryParam::Ver("3".to_string())])
+            .build();
+
+        let config = client.unwrap().config;
+
+        assert_eq!(config.default_query_params.unwrap().0.len(), 1);
+    }
+
+    #[test]
+    fn unit_rqlite_client_builder_default_scheme() {
+        let client = RqliteClientBuilder::new()
+            .known_host("http://localhost:4001")
+            .build();
+
+        let config = client.unwrap().config;
+
+        assert!(matches!(config.scheme, config::Scheme::Http));
     }
 }

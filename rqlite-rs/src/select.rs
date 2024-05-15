@@ -45,3 +45,26 @@ impl RqliteSelectResults {
         rows
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_rqlite_select_results() {
+        let select_results = RqliteSelectResults {
+            columns: vec!["id".to_string(), "name".to_string()],
+            types: vec!["integer".to_string(), "text".to_string()],
+            values: Some(vec![vec![
+                Value::Number(serde_json::Number::from(1)),
+                Value::String("test".to_string()),
+            ]]),
+        };
+
+        let rows = select_results.rows();
+        assert_eq!(rows.len(), 1);
+        let row = &rows[0];
+        assert_eq!(row.get::<i64>("id").unwrap(), 1);
+        assert_eq!(row.get::<String>("name").unwrap(), "test");
+    }
+}

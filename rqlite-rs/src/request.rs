@@ -70,7 +70,7 @@ impl RequestQueryParam {
 }
 
 #[derive(Debug, Clone, Default)]
-pub(crate) struct RequestQueryParams(Vec<RequestQueryParam>);
+pub(crate) struct RequestQueryParams(pub(super) Vec<RequestQueryParam>);
 
 impl RequestQueryParams {
     pub(crate) fn new() -> Self {
@@ -228,5 +228,108 @@ impl From<Vec<RqliteQueryParam>> for RqliteQueryParams {
 impl From<RqliteQueryParams> for RequestQueryParams {
     fn from(params: RqliteQueryParams) -> Self {
         params.into_request_query_params()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn full_query_params() -> RqliteQueryParams {
+        RqliteQueryParams::new()
+            .pretty()
+            .timings()
+            .transaction()
+            .queue()
+            .timeout(NonZeroU16::new(10).unwrap())
+            .level(RqliteFreshnessLevel::Weak)
+            .freshness(NonZeroU16::new(5).unwrap())
+            .freshness_strict()
+            .norwrandom()
+            .ver("1".to_string())
+    }
+
+    #[test]
+    fn unit_request_query_params() {
+        let params = full_query_params();
+        let req_params = RequestQueryParams::from(params);
+
+        assert_eq!(req_params.0.len(), 10);
+    }
+
+    #[test]
+    fn unit_request_query_params_into_reqwest_query() {
+        let params = full_query_params();
+        let req_params = RequestQueryParams::from(params);
+
+        let reqwest_query = req_params.into_reqwest_query();
+
+        assert_eq!(reqwest_query.len(), 10);
+    }
+
+    #[test]
+    fn unit_request_options_default() {
+        let req = RequestOptions::default();
+
+        assert_eq!(req.method, reqwest::Method::POST);
+        assert_eq!(req.endpoint, "db/request");
+        assert_eq!(req.body, None);
+        assert!(req.params.is_none());
+    }
+
+    #[test]
+    fn unit_request_options_to_reqwest_request() {
+        let req = RequestOptions {
+            params: Some(RequestQueryParams::from(full_query_params())),
+            ..Default::default()
+        };
+        let client = reqwest::Client::new();
+        let host = "localhost";
+        let scheme = Scheme::Http;
+
+        let reqwest_req = req.to_reqwest_request(&client, host, &scheme);
+
+        let reqwest_req = reqwest_req.build().unwrap();
+
+        assert_eq!(reqwest_req.method(), reqwest::Method::POST);
+
+        // check query scheme, host and params
+        let url = reqwest_req.url().to_string();
+
+        assert!(url.starts_with("http://localhost/db/request"));
+
+        let query = reqwest_req.url().query().unwrap();
+
+        assert!(query.contains("pretty=true"));
+        assert!(query.contains("timings=true"));
+        assert!(query.contains("transaction=true"));
+        assert!(query.contains("queue=true"));
+        assert!(query.contains("timeout=10s"));
+        assert!(query.contains("level=weak"));
+        assert!(query.contains("freshness=5s"));
+        assert!(query.contains("freshness_strict=true"));
+        assert!(query.contains("norwrandom=true"));
+        assert!(query.contains("ver=1"));
+    }
+
+    #[test]
+    fn unit_request_options_merge_default_query_params() {
+        let mut req = RequestOptions::default();
+        let default_params = RequestQueryParams::from(full_query_params());
+
+        req.merge_default_query_params(&default_params);
+
+        assert!(req.params.is_some());
+
+        let req_params = req.params.unwrap();
+
+        assert_eq!(req_params.0.len(), 10);
+    }
+
+    #[test]
+    fn unit_freshness_level_to_string() {
+        assert_eq!(RqliteFreshnessLevel::None.to_string(), "none");
+        assert_eq!(RqliteFreshnessLevel::Weak.to_string(), "weak");
+        assert_eq!(RqliteFreshnessLevel::Strong.to_string(), "strong");
     }
 }
