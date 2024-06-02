@@ -26,3 +26,16 @@ impl Column {
         &self.type_data
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_column() {
+        let column = Column::new("name".to_string(), 0, "TEXT".to_string());
+        assert_eq!(column.name(), "name");
+        assert_eq!(column.ordinal(), 0);
+        assert_eq!(column.type_data(), "TEXT");
+    }
+}

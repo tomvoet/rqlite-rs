@@ -35,8 +35,8 @@ jobs:
         with:
           command: generate-lockfile
 
-      - name: Run tests
+      - name: Run unit tests
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all --all-features --no-fail-fast -- --nocapture
+          args: unit --all --all-features --no-fail-fast -- --nocapture

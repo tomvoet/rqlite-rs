@@ -64,3 +64,29 @@ macro_rules! arg {
         $crate::query::arguments::RqliteArgumentRaw::encode(&$e)
     };
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_rqlite_argument() {
+        let arg = arg!(1i64);
+        assert_eq!(arg, RqliteArgument::I64(1));
+
+        let arg = arg!(1.0);
+        assert_eq!(arg, RqliteArgument::F64(1.0));
+
+        let arg = arg!(1.0f32);
+        assert_eq!(arg, RqliteArgument::F32(1.0));
+
+        let arg = arg!(true);
+        assert_eq!(arg, RqliteArgument::Bool(true));
+
+        let arg = arg!("hello");
+        assert_eq!(arg, RqliteArgument::String("hello".to_string()));
+
+        let arg = arg!("hello".to_string());
+        assert_eq!(arg, RqliteArgument::String("hello".to_string()));
+    }
+}

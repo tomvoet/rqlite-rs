@@ -46,3 +46,34 @@ impl std::fmt::Display for Scheme {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_rqlite_client_config_builder() {
+        let builder = RqliteClientConfigBuilder::default()
+            .default_query_params(vec![RqliteQueryParam::Ver("3".to_string())])
+            .scheme(Scheme::Https);
+
+        let config = builder.build();
+
+        assert!(config.default_query_params.is_some());
+        assert!(matches!(config.scheme, Scheme::Https));
+    }
+
+    #[test]
+    fn unit_rqlite_client_config() {
+        let config = RqliteClientConfig::default();
+
+        assert!(config.default_query_params.is_none());
+        assert!(matches!(config.scheme, Scheme::Http));
+    }
+
+    #[test]
+    fn unit_scheme() {
+        assert_eq!(Scheme::Http.to_string(), "http");
+        assert_eq!(Scheme::Https.to_string(), "https");
+    }
+}

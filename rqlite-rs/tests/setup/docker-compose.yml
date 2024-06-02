@@ -1,0 +1,16 @@
+services:
+  rqlite:
+    image: rqlite/rqlite:latest
+    ports:
+      - "4001:4001"
+      - "4002:4002"
+
+  # rqlite-auth:
+  #   image: rqlite/rqlite:latest
+  #   ports:
+  #     - "4003:4001"
+  #     - "4004:4002"
+  #   volumes:
+  #     - ./auth.json:/auth.json
+  #   command: 
+  #     - -auth /auth.json

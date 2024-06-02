@@ -215,3 +215,46 @@ impl_from_row_for_tuple!(
     (14) - T14;
     (15) - T15;
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::column::Column;
+    use std::{collections::HashMap, sync::Arc};
+
+    #[test]
+    fn unit_from_row_tuple() {
+        let mut column_names: HashMap<String, usize> = HashMap::new();
+        let columns = vec![
+            Column::new("id".to_string(), 0, "integer".to_string()),
+            Column::new("name".to_string(), 1, "text".to_string()),
+        ];
+
+        columns.iter().enumerate().for_each(|(i, c)| {
+            column_names.insert(c.name().to_string(), i);
+        });
+
+        let columns = Arc::new(columns);
+        let column_names = Arc::new(column_names);
+
+        let row = Row::new(
+            &columns,
+            &column_names,
+            vec![serde_json::json!(1), serde_json::json!("test")].into_boxed_slice(),
+        );
+
+        let (id, name) = <(i32, String)>::from_row(row).unwrap();
+
+        assert_eq!(id, 1);
+        assert_eq!(name, "test");
+
+        let row = Row::new(
+            &columns,
+            &column_names,
+            vec![serde_json::json!(1), serde_json::json!("test")].into_boxed_slice(),
+        );
+
+        let foo = <(i32, String, i32)>::from_row(row).unwrap_err();
+        assert!(matches!(foo, IntoTypedError::ColumnCountMismatch(3, 2)));
+    }
+}

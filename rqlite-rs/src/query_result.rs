@@ -25,3 +25,20 @@ impl QueryResult {
         self.rows_affected.unwrap_or(0) > 0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_query_result() {
+        let query_result = QueryResult {
+            last_insert_id: Some(1),
+            rows_affected: Some(1),
+        };
+
+        assert_eq!(query_result.last_insert_id(), Some(1));
+        assert_eq!(query_result.rows_affected(), Some(1));
+        assert_eq!(query_result.changed(), true);
+    }
+}
