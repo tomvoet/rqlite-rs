@@ -39,6 +39,6 @@ mod tests {
 
         assert_eq!(query_result.last_insert_id(), Some(1));
         assert_eq!(query_result.rows_affected(), Some(1));
-        assert_eq!(query_result.changed(), true);
+        assert!(query_result.changed());
     }
 }
