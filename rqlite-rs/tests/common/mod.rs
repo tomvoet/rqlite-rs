@@ -1,8 +1,4 @@
-use rqlite_rs::{
-    config::Scheme,
-    request::{RqliteFreshnessLevel, RqliteQueryParam},
-    RqliteClient, RqliteClientBuilder,
-};
+use rqlite_rs::{config::Scheme, request::RqliteQueryParam, RqliteClient, RqliteClientBuilder};
 
 pub async fn get_client() -> RqliteClient {
     RqliteClientBuilder::default()
@@ -13,24 +9,20 @@ pub async fn get_client() -> RqliteClient {
 }
 
 pub async fn get_client_with_default_query_params() -> RqliteClient {
-    let client = RqliteClientBuilder::default()
+    RqliteClientBuilder::default()
         .known_host("localhost:4001")
         .scheme(Scheme::Http)
         .default_query_params(vec![RqliteQueryParam::Pretty])
         .build()
-        .unwrap();
-
-    client
+        .unwrap()
 }
 
 pub async fn get_client_with_invalid_host() -> RqliteClient {
-    let client = RqliteClientBuilder::default()
+    RqliteClientBuilder::default()
         .known_host("localhost:4042")
         .scheme(Scheme::Http)
         .build()
-        .unwrap();
-
-    client
+        .unwrap()
 }
 
 pub async fn get_client_and_reset_db() -> RqliteClient {

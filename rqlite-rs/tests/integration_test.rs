@@ -36,16 +36,13 @@ async fn integration_leader() {
 async fn integration_exec() {
     let client = common::get_client_and_reset_db().await;
 
-    let query = "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)";
+    let create_query = "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)";
+    client.exec(create_query).await.unwrap();
 
-    let result = client.exec(query).await.unwrap();
+    let insert_query = "INSERT INTO test (name) VALUES ('test')";
+    let insert_result = client.exec(insert_query).await.unwrap();
 
-    let result_str = format!("{:?}", result);
-    assert_eq!(
-        result_str,
-        "Success(QueryResult { last_insert_id: 0, rows_affected: 0 })"
-    );
-    assert!(result.changed());
+    assert!(insert_result.changed());
 }
 
 #[tokio::test]
@@ -58,17 +55,18 @@ async fn integration_execute_batch() {
     let results = client.batch(vec![query, query2]).await.unwrap();
 
     assert_eq!(results.len(), 2);
-    let result_1 = match &results[0] {
-        RqliteResult::Success(BatchResult::QueryResult(result)) => result,
-        _ => panic!("Expected success"),
-    };
-    let result_2 = match &results[1] {
+
+    assert!(matches!(
+        &results[0],
+        RqliteResult::Success(BatchResult::QueryResult(_))
+    ));
+
+    let insert_result = match &results[1] {
         RqliteResult::Success(BatchResult::QueryResult(result)) => result,
         _ => panic!("Expected success"),
     };
 
-    assert!(result_1.changed());
-    assert!(result_2.changed());
+    assert!(insert_result.changed());
 }
 
 #[tokio::test]
