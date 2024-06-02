@@ -1,6 +1,7 @@
 # rqlite-rs
 
 [![build status](https://github.com/tomvoet/rqlite-rs/actions/workflows/linux.yml/badge.svg?branch=main&event=push)](https://github.com/tomvoet/rqlite-rs/actions?query=workflow%3A"CI+(Linux)") 
+[![Test Coverage](https://codecov.io/gh/tomvoet/rqlite-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/tomvoet/rqlite-rs)
 [![Crates.io](https://img.shields.io/crates/v/rqlite-rs.svg)](https://crates.io/crates/rqlite-rs)
 [![Documentation](https://docs.rs/rqlite-rs/badge.svg)](https://docs.rs/rqlite-rs)
 [![License](https://img.shields.io/crates/l/rqlite-rs.svg)](LICENSE)
