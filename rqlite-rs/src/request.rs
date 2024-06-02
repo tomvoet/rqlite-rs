@@ -1,4 +1,4 @@
-use std::num::NonZeroU16;
+use std::{fmt::Display, num::NonZeroU16};
 
 use serde::Serialize;
 
@@ -93,12 +93,12 @@ pub enum RqliteFreshnessLevel {
     Strong,
 }
 
-impl ToString for RqliteFreshnessLevel {
-    fn to_string(&self) -> String {
+impl Display for RqliteFreshnessLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RqliteFreshnessLevel::None => "none".to_string(),
-            RqliteFreshnessLevel::Weak => "weak".to_string(),
-            RqliteFreshnessLevel::Strong => "strong".to_string(),
+            RqliteFreshnessLevel::None => write!(f, "none"),
+            RqliteFreshnessLevel::Weak => write!(f, "weak"),
+            RqliteFreshnessLevel::Strong => write!(f, "strong"),
         }
     }
 }

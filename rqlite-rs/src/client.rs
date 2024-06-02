@@ -159,7 +159,7 @@ impl RqliteClient {
             let previous_host = host.clone();
             self.shift_host();
             let hosts = self.hosts.read().unwrap();
-            *host = hosts[0].clone();
+            host.clone_from(&hosts[0]);
             println!("Connection to {} failed, trying {}", previous_host, *host);
             Ok(())
         } else {
