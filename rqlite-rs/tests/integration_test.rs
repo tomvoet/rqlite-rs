@@ -8,7 +8,7 @@ async fn integration_ready() {
 
     let ready = client.ready().await;
 
-    assert_eq!(ready, true);
+    assert!(ready);
 }
 
 #[tokio::test]
@@ -29,7 +29,7 @@ async fn integration_leader() {
     let leader = leader.unwrap();
 
     // Can't verify the leader address, as it's dynamic (because of docker)
-    assert_eq!(leader.leader, true);
+    assert!(leader.leader);
 }
 
 #[tokio::test]
@@ -40,7 +40,12 @@ async fn integration_exec() {
 
     let result = client.exec(query).await.unwrap();
 
-    assert_eq!(result.changed(), true);
+    let result_str = format!("{:?}", result);
+    assert_eq!(
+        result_str,
+        "Success(QueryResult { last_insert_id: 0, rows_affected: 0 })"
+    );
+    assert!(result.changed());
 }
 
 #[tokio::test]
@@ -62,8 +67,8 @@ async fn integration_execute_batch() {
         _ => panic!("Expected success"),
     };
 
-    assert_eq!(result_1.changed(), true);
-    assert_eq!(result_2.changed(), true);
+    assert!(result_1.changed());
+    assert!(result_2.changed());
 }
 
 #[tokio::test]
