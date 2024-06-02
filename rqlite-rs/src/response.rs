@@ -3,8 +3,8 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum RqliteResult<T> {
-    Success(T),
     Error(QueryError),
+    Success(T),
 }
 
 #[derive(Debug, Deserialize, Clone)]
