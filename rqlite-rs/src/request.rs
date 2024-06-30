@@ -67,6 +67,15 @@ impl RequestQueryParam {
             RequestQueryParam::KV(k, v) => (k, v),
         }
     }
+
+    fn is_same_key(&self, other: &RequestQueryParam) -> bool {
+        match (self, other) {
+            (RequestQueryParam::Bool(k1), RequestQueryParam::Bool(k2)) => k1 == k2,
+            (RequestQueryParam::KV(k1, _), RequestQueryParam::KV(k2, _)) => k1 == k2,
+            (RequestQueryParam::Bool(k1), RequestQueryParam::KV(k2, _)) => k1 == k2,
+            (RequestQueryParam::KV(k1, _), RequestQueryParam::Bool(k2)) => k1 == k2,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -82,7 +91,13 @@ impl RequestQueryParams {
     }
 
     pub(crate) fn merge(&mut self, other: RequestQueryParams) {
-        self.0.extend(other.0.clone());
+        //self.0.extend(other.0.clone());#
+        //Deduplication
+        for p in other.0 {
+            if !self.0.iter().any(|x| x.is_same_key(&p)) {
+                self.0.push(p);
+            }
+        }
     }
 }
 
@@ -324,6 +339,91 @@ mod tests {
         let req_params = req.params.unwrap();
 
         assert_eq!(req_params.0.len(), 10);
+    }
+
+    #[test]
+    fn unit_request_merge() {
+        // Bool params
+        let mut params1 = RequestQueryParams::new();
+        params1
+            .0
+            .push(RequestQueryParam::Bool("pretty".to_string()));
+        let mut params2 = RequestQueryParams::new();
+        params2
+            .0
+            .push(RequestQueryParam::Bool("pretty".to_string()));
+        params2
+            .0
+            .push(RequestQueryParam::Bool("timings".to_string()));
+
+        params1.merge(params2);
+
+        assert_eq!(params1.0.len(), 2);
+
+        // KV params
+        let mut params1 = RequestQueryParams::new();
+        params1.0.push(RequestQueryParam::KV(
+            "timeout".to_string(),
+            "10s".to_string(),
+        ));
+        let mut params2 = RequestQueryParams::new();
+        params2.0.push(RequestQueryParam::KV(
+            "timeout".to_string(),
+            "10s".to_string(),
+        ));
+        params2.0.push(RequestQueryParam::KV(
+            "level".to_string(),
+            "weak".to_string(),
+        ));
+
+        params1.merge(params2);
+
+        assert_eq!(params1.0.len(), 2);
+
+        // Mixed params KV and Bool
+        let mut params1 = RequestQueryParams::new();
+        params1.0.push(RequestQueryParam::KV(
+            "timeout".to_string(),
+            "10s".to_string(),
+        ));
+        let mut params2 = RequestQueryParams::new();
+        params2
+            .0
+            .push(RequestQueryParam::Bool("pretty".to_string()));
+        params2.0.push(RequestQueryParam::KV(
+            "timeout".to_string(),
+            "10s".to_string(),
+        ));
+        params2.0.push(RequestQueryParam::KV(
+            "level".to_string(),
+            "weak".to_string(),
+        ));
+
+        params1.merge(params2);
+
+        assert_eq!(params1.0.len(), 3);
+
+        // Mixed params Bool and KV
+        let mut params1 = RequestQueryParams::new();
+        params1
+            .0
+            .push(RequestQueryParam::Bool("pretty".to_string()));
+        let mut params2 = RequestQueryParams::new();
+        params2.0.push(RequestQueryParam::KV(
+            "timeout".to_string(),
+            "10s".to_string(),
+        ));
+        params2.0.push(RequestQueryParam::KV(
+            "level".to_string(),
+            "weak".to_string(),
+        ));
+        params2
+            .0
+            .push(RequestQueryParam::Bool("pretty".to_string()));
+
+        params1.merge(params2);
+
+        assert_eq!(params1.0.len(), 3);
     }
 
     #[test]
