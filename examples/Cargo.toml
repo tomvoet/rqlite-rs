@@ -6,8 +6,8 @@ version = "0.0.0"
 
 [dev-dependencies]
 rqlite-rs = { version = "0.3.16", path = "../rqlite-rs" }
-tokio = { version = "1.36.0", features = ["rt-multi-thread", "macros"] }
-anyhow = "1.0.81"
+tokio = { version = "1.38.0", features = ["rt-multi-thread", "macros"] }
+anyhow = "1.0.86"
 
 [[example]]
 name = "list-tables"
