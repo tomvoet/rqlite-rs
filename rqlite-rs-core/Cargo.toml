@@ -1,16 +1,16 @@
 [package]
 name = "rqlite-rs-core"
-version = "0.2.9"
-edition = "2021"
+version = "0.2.10"
 publish = true
-license = "MIT"
 description = "Core library for rqlite-rs"
-repository = "https://github.com/tomvoet/rqlite-rs"
 readme = "../README.md"
-keywords = ["rqlite", "database", "async"]
-categories = ["database", "asynchronous"]
-authors = ["Tom Voet <tomvoet@pm.me>"]
 documentation = "https://docs.rs/rqlite-rs/"
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+keywords.workspace = true
+categories.workspace = true
+repository.workspace = true
 
 [dependencies]
 serde.workspace = true
