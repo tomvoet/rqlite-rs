@@ -1,21 +1,21 @@
 [package]
 name = "rqlite-rs-macros"
-version = "0.2.8"
-edition = "2021"
+version = "0.2.9"
 publish = true
-license = "MIT"
 description = "Proc-macros for rqlite-rs"
-repository = "https://github.com/tomvoet/rqlite-rs"
 readme = "../README.md"
-keywords = ["rqlite", "database", "async"]
-categories = ["database", "asynchronous"]
-authors = ["Tom Voet <tomvoet@pm.me>"]
 documentation = "https://docs.rs/rqlite-rs/"
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+keywords.workspace = true
+categories.workspace = true
+repository.workspace = true
 
 [lib]
 proc-macro = true
 
 [dependencies]
 quote = "1.0.36"
-rqlite-rs-core = { version = "0.2.9", path = "../rqlite-rs-core" }
-syn = { version = "2.0.68", features = ["full", "parsing"] }
+rqlite-rs-core = { version = "0.2.10", path = "../rqlite-rs-core" }
+syn = { version = "2.0.71", features = ["full", "parsing"] }

@@ -1,16 +1,16 @@
 [package]
 name = "rqlite-rs"
-version = "0.3.18"
-edition = "2021"
+version = "0.3.19"
 publish = true
-license = "MIT"
 description = "Async rqlite client for Rust"
-repository = "https://github.com/tomvoet/rqlite-rs"
 readme = "../README.md"
-keywords = ["rqlite", "database", "async"]
-categories = ["database", "asynchronous"]
-authors = ["Tom Voet <tomvoet@pm.me>"]
 documentation = "https://docs.rs/rqlite-rs/"
+license.workspace = true
+authors.workspace = true
+edition.workspace = true
+keywords.workspace = true
+categories.workspace = true
+repository.workspace = true
 
 [features]
 default = ["macros", "native-tls"]
@@ -21,8 +21,8 @@ rustls-tls = ["reqwest/rustls-tls"]
 macros = ["rqlite-rs-macros"]
 
 [dependencies]
-rqlite-rs-macros = { version = "0.2.8", path = "../rqlite-rs-macros", optional = true }
-rqlite-rs-core = { version = "0.2.9", path = "../rqlite-rs-core" }
+rqlite-rs-macros = { version = "0.2.9", path = "../rqlite-rs-macros", optional = true }
+rqlite-rs-core = { version = "0.2.10", path = "../rqlite-rs-core" }
 reqwest = { version = "0.12.5", default-features = false }
 base64 = "0.22.1"
 serde.workspace = true
@@ -30,4 +30,4 @@ serde_json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-tokio = "1.38.0"
+tokio = "1.38.1"
