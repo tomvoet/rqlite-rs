@@ -39,3 +39,8 @@ doc-scrape-examples = true
 name = "https"
 path = "https.rs"
 doc-scrape-examples = true
+
+[[example]]
+name = "option"
+path = "option.rs"
+doc-scrape-examples = true
