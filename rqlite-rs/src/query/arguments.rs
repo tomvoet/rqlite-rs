@@ -29,14 +29,33 @@ impl<'a> Serialize for RqliteArgument<'a> {
     }
 }
 
+pub trait RqliteArgumentRaw<'a> {
+    fn encode(&self) -> RqliteArgument<'a>;
+}
+
 impl<'a> RqliteArgumentRaw<'a> for RqliteArgumentValue<'a> {
     fn encode(&self) -> RqliteArgument<'a> {
-        RqliteArgument::Some(self.clone())
+        RqliteArgument::Some(match self {
+            // For String, just clone the ptr
+            RqliteArgumentValue::String(s) => RqliteArgumentValue::String(s.clone()),
+            RqliteArgumentValue::I64(val) => RqliteArgumentValue::I64(*val),
+            RqliteArgumentValue::F64(val) => RqliteArgumentValue::F64(*val),
+            RqliteArgumentValue::F32(val) => RqliteArgumentValue::F32(*val),
+            RqliteArgumentValue::Bool(val) => RqliteArgumentValue::Bool(*val),
+        })
     }
 }
 
-pub trait RqliteArgumentRaw<'a> {
-    fn encode(&self) -> RqliteArgument<'a>;
+impl<'a> RqliteArgumentRaw<'a> for &'a RqliteArgumentValue<'a> {
+    fn encode(&self) -> RqliteArgument<'a> {
+        RqliteArgument::Some(match self {
+            RqliteArgumentValue::String(s) => RqliteArgumentValue::String(Cow::Borrowed(s)),
+            RqliteArgumentValue::I64(val) => RqliteArgumentValue::I64(*val),
+            RqliteArgumentValue::F64(val) => RqliteArgumentValue::F64(*val),
+            RqliteArgumentValue::F32(val) => RqliteArgumentValue::F32(*val),
+            RqliteArgumentValue::Bool(val) => RqliteArgumentValue::Bool(*val),
+        })
+    }
 }
 
 impl<'a> RqliteArgumentRaw<'a> for i32 {
