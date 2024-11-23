@@ -1,26 +1,27 @@
+use arguments::RqliteArgument;
 use serde::Serialize;
 use serde_json;
 
 pub mod arguments;
 use crate::error::QueryBuilderError;
-pub(crate) use arguments::RqliteArgument;
+pub(crate) use arguments::RqliteArgumentValue;
 
 /// A query to be executed on the rqlite cluster.
 #[derive(Debug)]
-pub struct RqliteQuery {
+pub struct RqliteQuery<'a> {
     pub query: String,
-    pub args: Vec<RqliteArgument>,
+    pub args: Vec<RqliteArgument<'a>>,
     pub op: Operation,
 }
 
-impl TryInto<RqliteQuery> for String {
+impl<'a> TryInto<RqliteQuery<'a>> for String {
     type Error = QueryBuilderError;
 
     /// Attempts to convert a string into a [`RqliteQuery`].
     /// Returns a `Result` with the query if the string is valid.
     /// Fails if the query does not start with a valid operation.
     /// See [`Operation`] for a list of valid operations.
-    fn try_into(self) -> Result<RqliteQuery, Self::Error> {
+    fn try_into(self) -> Result<RqliteQuery<'a>, Self::Error> {
         let op = Operation::from_query_string(self.as_str())?;
 
         Ok(RqliteQuery {
@@ -31,14 +32,14 @@ impl TryInto<RqliteQuery> for String {
     }
 }
 
-impl TryInto<RqliteQuery> for &str {
+impl<'a> TryInto<RqliteQuery<'a>> for &'a str {
     type Error = QueryBuilderError;
 
     /// Attempts to convert a string into a [`RqliteQuery`].
     /// Returns a `Result` with the query if the string is valid.
     /// Fails if the query does not start with a valid operation.
     /// See [`Operation`] for a list of valid operations.
-    fn try_into(self) -> Result<RqliteQuery, Self::Error> {
+    fn try_into(self) -> Result<RqliteQuery<'a>, Self::Error> {
         let op = Operation::from_query_string(self)?;
 
         Ok(RqliteQuery {
@@ -49,34 +50,36 @@ impl TryInto<RqliteQuery> for &str {
     }
 }
 
-impl TryInto<RqliteQuery> for Result<RqliteQuery, QueryBuilderError> {
+impl<'a> TryInto<RqliteQuery<'a>> for Result<RqliteQuery<'a>, QueryBuilderError> {
     type Error = QueryBuilderError;
 
     /// Attempts to convert a `Result` into a [`RqliteQuery`].
     /// Returns a `Result` with the query if the result is valid.
     /// Fails if the result is an error.
     /// This allows avoiding the use of `?` in the `query!` macro.
-    fn try_into(self) -> Result<RqliteQuery, Self::Error> {
+    fn try_into(self) -> Result<RqliteQuery<'a>, Self::Error> {
         self
     }
 }
 
 #[derive(Serialize, Debug)]
-struct QueryComponent(RqliteArgument);
+struct QueryComponent<'a>(RqliteArgument<'a>);
 
 // This is a helper struct for serializing multiple queries with arguments.
 #[derive(Serialize, Debug)]
-pub(crate) struct QueryArgs(Vec<Vec<QueryComponent>>);
+pub(crate) struct QueryArgs<'a>(Vec<Vec<QueryComponent<'a>>>);
 
 // This is an internal helper, for creating a `QueryArgs` from a vector of `RqliteQuery`.
 // This is used for batch queries.
-impl From<RqliteQuery> for QueryArgs {
-    fn from(query: RqliteQuery) -> Self {
+impl<'a> From<RqliteQuery<'a>> for QueryArgs<'a> {
+    fn from(query: RqliteQuery<'a>) -> Self {
         let mut args = Vec::new();
 
         let mut components = Vec::new();
 
-        components.push(QueryComponent(RqliteArgument::String(query.query)));
+        components.push(QueryComponent(RqliteArgument::Some(
+            RqliteArgumentValue::String(query.query.into()),
+        )));
 
         for arg in query.args {
             components.push(QueryComponent(arg));
@@ -90,14 +93,16 @@ impl From<RqliteQuery> for QueryArgs {
 
 // This is an internal helper, for creating a `QueryArgs` from a vector of `RqliteQuery`.
 // This is used for batch queries.
-impl From<Vec<RqliteQuery>> for QueryArgs {
-    fn from(queries: Vec<RqliteQuery>) -> Self {
+impl<'a> From<Vec<RqliteQuery<'a>>> for QueryArgs<'a> {
+    fn from(queries: Vec<RqliteQuery<'a>>) -> Self {
         let mut args = Vec::new();
 
         for query in queries {
             let mut components = Vec::new();
 
-            components.push(QueryComponent(RqliteArgument::String(query.query)));
+            components.push(QueryComponent(RqliteArgument::Some(
+                RqliteArgumentValue::String(query.query.into()),
+            )));
 
             for arg in query.args {
                 components.push(QueryComponent(arg));
@@ -110,7 +115,7 @@ impl From<Vec<RqliteQuery>> for QueryArgs {
     }
 }
 
-impl RqliteQuery {
+impl<'a> RqliteQuery<'a> {
     pub(crate) fn into_json(self) -> Result<String, serde_json::Error> {
         let args = QueryArgs::from(self);
 

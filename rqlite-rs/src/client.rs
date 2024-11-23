@@ -167,7 +167,10 @@ impl RqliteClient {
         }
     }
 
-    async fn exec_query<T>(&self, q: query::RqliteQuery) -> Result<RqliteResult<T>, RequestError>
+    async fn exec_query<'a, T>(
+        &'a self,
+        q: query::RqliteQuery<'a>,
+    ) -> Result<RqliteResult<T>, RequestError>
     where
         T: serde::de::DeserializeOwned + Clone,
     {
@@ -217,9 +220,9 @@ impl RqliteClient {
 
     /// Executes a query that returns results.
     /// Returns a vector of [`Row`]s if the query was successful, otherwise an error.
-    pub async fn fetch<Q>(&self, q: Q) -> Result<Vec<Row>, RequestError>
+    pub async fn fetch<'a, Q>(&self, q: Q) -> Result<Vec<Row>, RequestError>
     where
-        Q: TryInto<RqliteQuery>,
+        Q: TryInto<RqliteQuery<'a>>,
         RequestError: From<Q::Error>,
     {
         let result = self
@@ -235,9 +238,9 @@ impl RqliteClient {
     /// Executes a query that does not return any results.
     /// Returns the [`QueryResult`] if the query was successful, otherwise an error.
     /// Is primarily used for `INSERT`, `UPDATE`, `DELETE` and `CREATE` queries.
-    pub async fn exec<Q>(&self, q: Q) -> Result<QueryResult, RequestError>
+    pub async fn exec<'a, Q>(&self, q: Q) -> Result<QueryResult, RequestError>
     where
-        Q: TryInto<RqliteQuery>,
+        Q: TryInto<RqliteQuery<'a>>,
         RequestError: From<Q::Error>,
     {
         let query_result = self.exec_query::<QueryResult>(q.try_into()?).await?;
@@ -256,9 +259,12 @@ impl RqliteClient {
     /// If a query fails, the corresponding result will contain an error.
     ///
     /// For more information on batch queries, see the [rqlite documentation](https://rqlite.io/docs/api/bulk-api/).
-    pub async fn batch<Q>(&self, qs: Vec<Q>) -> Result<Vec<RqliteResult<BatchResult>>, RequestError>
+    pub async fn batch<'a, Q>(
+        &self,
+        qs: Vec<Q>,
+    ) -> Result<Vec<RqliteResult<BatchResult>>, RequestError>
     where
-        Q: TryInto<RqliteQuery>,
+        Q: TryInto<RqliteQuery<'a>>,
         RequestError: From<Q::Error>,
     {
         let queries = qs
@@ -292,12 +298,12 @@ impl RqliteClient {
     /// Returns a vector of [`RqliteResult`]s.
     ///
     /// For more information on transactions, see the [rqlite documentation](https://rqlite.io/docs/api/api/#transactions).
-    pub async fn transaction<Q>(
+    pub async fn transaction<'a, Q>(
         &self,
         qs: Vec<Q>,
     ) -> Result<Vec<RqliteResult<QueryResult>>, RequestError>
     where
-        Q: TryInto<RqliteQuery>,
+        Q: TryInto<RqliteQuery<'a>>,
         RequestError: From<Q::Error>,
     {
         let queries = qs
@@ -334,9 +340,9 @@ impl RqliteClient {
     /// This results in much higher write performance.
     ///
     /// For more information on queued queries, see the [rqlite documentation](https://rqlite.io/docs/api/queued-writes/).
-    pub async fn queue<Q>(&self, qs: Vec<Q>) -> Result<(), RequestError>
+    pub async fn queue<'a, Q>(&self, qs: Vec<Q>) -> Result<(), RequestError>
     where
-        Q: TryInto<RqliteQuery>,
+        Q: TryInto<RqliteQuery<'a>>,
         RequestError: From<Q::Error>,
     {
         let queries = qs

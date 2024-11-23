@@ -1,60 +1,102 @@
 use serde::Serialize;
+use std::borrow::Cow;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
 #[serde(untagged)]
-pub enum RqliteArgument {
-    String(String),
+pub enum RqliteArgumentValue<'a> {
+    String(Cow<'a, str>),
     I64(i64),
     F64(f64),
     F32(f32),
     Bool(bool),
 }
 
-impl RqliteArgument {}
-
-pub trait RqliteArgumentRaw {
-    fn encode(&self) -> RqliteArgument;
+#[derive(Debug, PartialEq, Clone)]
+pub enum RqliteArgument<'a> {
+    Some(RqliteArgumentValue<'a>),
+    None,
 }
 
-impl RqliteArgumentRaw for i64 {
-    fn encode(&self) -> RqliteArgument {
-        RqliteArgument::I64(self.to_owned())
+impl<'a> Serialize for RqliteArgument<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            RqliteArgument::Some(arg) => arg.serialize(serializer),
+            RqliteArgument::None => serializer.serialize_none(),
+        }
     }
 }
 
-impl RqliteArgumentRaw for usize {
-    fn encode(&self) -> RqliteArgument {
-        RqliteArgument::I64(*self as i64)
+// Implement RqliteArgumentRaw for RqliteArgumentValue
+impl<'a> RqliteArgumentRaw<'a> for RqliteArgumentValue<'a> {
+    fn encode(&self) -> RqliteArgument<'a> {
+        RqliteArgument::Some(self.clone()) // We clone to return an owned value.
     }
 }
 
-impl RqliteArgumentRaw for f64 {
-    fn encode(&self) -> RqliteArgument {
-        RqliteArgument::F64(self.to_owned())
+pub trait RqliteArgumentRaw<'a> {
+    fn encode(&self) -> RqliteArgument<'a>;
+}
+
+impl<'a> RqliteArgumentRaw<'a> for i32 {
+    fn encode(&self) -> RqliteArgument<'a> {
+        RqliteArgument::Some(RqliteArgumentValue::I64(*self as i64))
     }
 }
 
-impl RqliteArgumentRaw for f32 {
-    fn encode(&self) -> RqliteArgument {
-        RqliteArgument::F32(self.to_owned())
+impl<'a> RqliteArgumentRaw<'a> for i64 {
+    fn encode(&self) -> RqliteArgument<'a> {
+        RqliteArgument::Some(RqliteArgumentValue::I64(*self))
     }
 }
 
-impl RqliteArgumentRaw for bool {
-    fn encode(&self) -> RqliteArgument {
-        RqliteArgument::Bool(self.to_owned())
+impl<'a> RqliteArgumentRaw<'a> for usize {
+    fn encode(&self) -> RqliteArgument<'a> {
+        RqliteArgument::Some(RqliteArgumentValue::I64(*self as i64))
     }
 }
 
-impl RqliteArgumentRaw for &str {
-    fn encode(&self) -> RqliteArgument {
-        RqliteArgument::String(self.to_string())
+impl<'a> RqliteArgumentRaw<'a> for f64 {
+    fn encode(&self) -> RqliteArgument<'a> {
+        RqliteArgument::Some(RqliteArgumentValue::F64(*self))
     }
 }
 
-impl RqliteArgumentRaw for String {
-    fn encode(&self) -> RqliteArgument {
-        RqliteArgument::String(self.to_string())
+impl<'a> RqliteArgumentRaw<'a> for f32 {
+    fn encode(&self) -> RqliteArgument<'a> {
+        RqliteArgument::Some(RqliteArgumentValue::F32(*self))
+    }
+}
+
+impl<'a> RqliteArgumentRaw<'a> for bool {
+    fn encode(&self) -> RqliteArgument<'a> {
+        RqliteArgument::Some(RqliteArgumentValue::Bool(*self))
+    }
+}
+
+impl<'a> RqliteArgumentRaw<'a> for &'a str {
+    fn encode(&self) -> RqliteArgument<'a> {
+        RqliteArgument::Some(RqliteArgumentValue::String(Cow::Borrowed(*self)))
+    }
+}
+
+impl<'a> RqliteArgumentRaw<'a> for String {
+    fn encode(&self) -> RqliteArgument<'a> {
+        RqliteArgument::Some(RqliteArgumentValue::String(Cow::Owned(self.clone())))
+    }
+}
+
+impl<'a, T> RqliteArgumentRaw<'a> for Option<T>
+where
+    T: RqliteArgumentRaw<'a>,
+{
+    fn encode(&self) -> RqliteArgument<'a> {
+        match self {
+            Some(value) => value.encode(),
+            None => RqliteArgument::None,
+        }
     }
 }
 
@@ -72,21 +114,36 @@ mod tests {
     #[test]
     fn unit_rqlite_argument() {
         let arg = arg!(1i64);
-        assert_eq!(arg, RqliteArgument::I64(1));
+        assert_eq!(arg, RqliteArgument::Some(RqliteArgumentValue::I64(1)));
 
         let arg = arg!(1.0);
-        assert_eq!(arg, RqliteArgument::F64(1.0));
+        assert_eq!(arg, RqliteArgument::Some(RqliteArgumentValue::F64(1.0)));
 
         let arg = arg!(1.0f32);
-        assert_eq!(arg, RqliteArgument::F32(1.0));
+        assert_eq!(arg, RqliteArgument::Some(RqliteArgumentValue::F32(1.0)));
 
         let arg = arg!(true);
-        assert_eq!(arg, RqliteArgument::Bool(true));
+        assert_eq!(arg, RqliteArgument::Some(RqliteArgumentValue::Bool(true)));
 
         let arg = arg!("hello");
-        assert_eq!(arg, RqliteArgument::String("hello".to_string()));
+        assert_eq!(
+            arg,
+            RqliteArgument::Some(RqliteArgumentValue::String(Cow::Borrowed("hello")))
+        );
 
         let arg = arg!("hello".to_string());
-        assert_eq!(arg, RqliteArgument::String("hello".to_string()));
+        assert_eq!(
+            arg,
+            RqliteArgument::Some(RqliteArgumentValue::String(Cow::Owned("hello".to_string())))
+        );
+    }
+
+    #[test]
+    fn unit_rqlite_argument_option() {
+        let arg = arg!(Some(RqliteArgumentValue::I64(1)));
+        assert_eq!(arg, RqliteArgument::Some(RqliteArgumentValue::I64(1)));
+
+        let arg = arg!(None::<RqliteArgumentValue>);
+        assert_eq!(arg, RqliteArgument::None);
     }
 }
