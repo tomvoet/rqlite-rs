@@ -184,4 +184,70 @@ mod tests {
         let serialized = serde_json::to_string(&arg).unwrap();
         assert_eq!(serialized, "null");
     }
+
+    #[test]
+    fn unit_rqlite_argument_raw_owned() {
+        let arg = RqliteArgumentValue::String(Cow::Owned("hello".to_string()));
+        let encoded = arg.encode();
+        assert_eq!(
+            encoded,
+            RqliteArgument::Some(RqliteArgumentValue::String(Cow::Owned("hello".to_string())))
+        );
+
+        let arg = RqliteArgumentValue::I64(123);
+        let encoded = arg.encode();
+        assert_eq!(encoded, RqliteArgument::Some(RqliteArgumentValue::I64(123)));
+
+        let arg = RqliteArgumentValue::F64(3.2);
+        let encoded = arg.encode();
+        assert_eq!(encoded, RqliteArgument::Some(RqliteArgumentValue::F64(3.2)));
+
+        let arg = RqliteArgumentValue::F32(2.71);
+        let encoded = arg.encode();
+        assert_eq!(
+            encoded,
+            RqliteArgument::Some(RqliteArgumentValue::F32(2.71))
+        );
+
+        let arg = RqliteArgumentValue::Bool(true);
+        let encoded = arg.encode();
+        assert_eq!(
+            encoded,
+            RqliteArgument::Some(RqliteArgumentValue::Bool(true))
+        );
+    }
+
+    #[test]
+    #[allow(clippy::needless_borrow)]
+    fn unit_rqlite_argument_raw_borrowed() {
+        let arg = RqliteArgumentValue::String(Cow::Owned("hello".to_string()));
+        let encoded = (&arg).encode();
+        assert_eq!(
+            encoded,
+            RqliteArgument::Some(RqliteArgumentValue::String(Cow::Borrowed("hello")))
+        );
+
+        let arg = RqliteArgumentValue::I64(123);
+        let encoded = (&arg).encode();
+        assert_eq!(encoded, RqliteArgument::Some(RqliteArgumentValue::I64(123)));
+
+        let arg = RqliteArgumentValue::F64(3.2);
+        let encoded = (&arg).encode();
+        assert_eq!(encoded, RqliteArgument::Some(RqliteArgumentValue::F64(3.2)));
+
+        let arg = RqliteArgumentValue::F32(2.71);
+        let encoded = (&arg).encode();
+        assert_eq!(
+            encoded,
+            RqliteArgument::Some(RqliteArgumentValue::F32(2.71))
+        );
+
+        let arg = RqliteArgumentValue::Bool(true);
+
+        let encoded = (&arg).encode();
+        assert_eq!(
+            encoded,
+            RqliteArgument::Some(RqliteArgumentValue::Bool(true))
+        );
+    }
 }
