@@ -29,10 +29,9 @@ impl<'a> Serialize for RqliteArgument<'a> {
     }
 }
 
-// Implement RqliteArgumentRaw for RqliteArgumentValue
 impl<'a> RqliteArgumentRaw<'a> for RqliteArgumentValue<'a> {
     fn encode(&self) -> RqliteArgument<'a> {
-        RqliteArgument::Some(self.clone()) // We clone to return an owned value.
+        RqliteArgument::Some(self.clone())
     }
 }
 
@@ -113,6 +112,15 @@ mod tests {
 
     #[test]
     fn unit_rqlite_argument() {
+        let arg = arg!(1);
+        assert_eq!(arg, RqliteArgument::Some(RqliteArgumentValue::I64(1)));
+
+        let arg = arg!(1i32);
+        assert_eq!(arg, RqliteArgument::Some(RqliteArgumentValue::I64(1)));
+
+        let arg = arg!(1usize);
+        assert_eq!(arg, RqliteArgument::Some(RqliteArgumentValue::I64(1)));
+
         let arg = arg!(1i64);
         assert_eq!(arg, RqliteArgument::Some(RqliteArgumentValue::I64(1)));
 
@@ -145,5 +153,16 @@ mod tests {
 
         let arg = arg!(None::<RqliteArgumentValue>);
         assert_eq!(arg, RqliteArgument::None);
+    }
+
+    #[test]
+    fn unit_rqlite_serialize_option() {
+        let arg = RqliteArgument::Some(RqliteArgumentValue::I64(1));
+        let serialized = serde_json::to_string(&arg).unwrap();
+        assert_eq!(serialized, "1");
+
+        let arg = RqliteArgument::None;
+        let serialized = serde_json::to_string(&arg).unwrap();
+        assert_eq!(serialized, "null");
     }
 }
