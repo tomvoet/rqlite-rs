@@ -46,6 +46,7 @@ impl<'a> RqliteArgumentRaw<'a> for RqliteArgumentValue<'a> {
     }
 }
 
+#[cfg_attr(tarpaulin, skip)]
 impl<'a> RqliteArgumentRaw<'a> for &'a RqliteArgumentValue<'a> {
     fn encode(&self) -> RqliteArgument<'a> {
         RqliteArgument::Some(match self {
