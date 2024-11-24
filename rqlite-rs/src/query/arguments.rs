@@ -8,12 +8,19 @@ pub enum RqliteArgument {
     F64(f64),
     F32(f32),
     Bool(bool),
+    Null,
 }
 
 impl RqliteArgument {}
 
 pub trait RqliteArgumentRaw {
     fn encode(&self) -> RqliteArgument;
+}
+
+impl RqliteArgumentRaw for i32 {
+    fn encode(&self) -> RqliteArgument {
+        RqliteArgument::I64(*self as i64)
+    }
 }
 
 impl RqliteArgumentRaw for i64 {
@@ -55,6 +62,18 @@ impl RqliteArgumentRaw for &str {
 impl RqliteArgumentRaw for String {
     fn encode(&self) -> RqliteArgument {
         RqliteArgument::String(self.to_string())
+    }
+}
+
+impl<T> RqliteArgumentRaw for Option<T>
+where
+    T: RqliteArgumentRaw,
+{
+    fn encode(&self) -> RqliteArgument {
+        match self {
+            Some(v) => v.encode(),
+            None => RqliteArgument::Null,
+        }
     }
 }
 
