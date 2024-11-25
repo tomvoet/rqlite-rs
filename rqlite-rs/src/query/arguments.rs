@@ -8,12 +8,19 @@ pub enum RqliteArgument {
     F64(f64),
     F32(f32),
     Bool(bool),
+    Null,
 }
 
 impl RqliteArgument {}
 
 pub trait RqliteArgumentRaw {
     fn encode(&self) -> RqliteArgument;
+}
+
+impl RqliteArgumentRaw for i32 {
+    fn encode(&self) -> RqliteArgument {
+        RqliteArgument::I64(*self as i64)
+    }
 }
 
 impl RqliteArgumentRaw for i64 {
@@ -58,6 +65,18 @@ impl RqliteArgumentRaw for String {
     }
 }
 
+impl<T> RqliteArgumentRaw for Option<T>
+where
+    T: RqliteArgumentRaw,
+{
+    fn encode(&self) -> RqliteArgument {
+        match self {
+            Some(v) => v.encode(),
+            None => RqliteArgument::Null,
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! arg {
     ($e:expr) => {
@@ -88,5 +107,11 @@ mod tests {
 
         let arg = arg!("hello".to_string());
         assert_eq!(arg, RqliteArgument::String("hello".to_string()));
+
+        let arg = arg!(Some(1i64));
+        assert_eq!(arg, RqliteArgument::I64(1));
+
+        let arg = arg!(None::<i64>);
+        assert_eq!(arg, RqliteArgument::Null);
     }
 }

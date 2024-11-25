@@ -1,6 +1,6 @@
 [package]
 name = "rqlite-rs"
-version = "0.3.20"
+version = "0.4.0"
 publish = true
 description = "Async rqlite client for Rust"
 readme = "../README.md"
