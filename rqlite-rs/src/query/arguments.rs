@@ -107,5 +107,11 @@ mod tests {
 
         let arg = arg!("hello".to_string());
         assert_eq!(arg, RqliteArgument::String("hello".to_string()));
+
+        let arg = arg!(Some(1i64));
+        assert_eq!(arg, RqliteArgument::I64(1));
+
+        let arg = arg!(None::<i64>);
+        assert_eq!(arg, RqliteArgument::Null);
     }
 }
