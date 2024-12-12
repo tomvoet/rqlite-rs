@@ -90,6 +90,9 @@ mod tests {
 
     #[test]
     fn unit_rqlite_argument() {
+        let arg = arg!(1i32);
+        assert_eq!(arg, RqliteArgument::I64(1));
+
         let arg = arg!(1i64);
         assert_eq!(arg, RqliteArgument::I64(1));
 
