@@ -1,0 +1,142 @@
+name: Continuous Integration
+
+on:
+    push:
+      branches:
+        - main
+    pull_request:
+      branches:
+        - main
+    workflow_dispatch: 
+    schedule:
+      - cron: '0 0 * * 0'
+
+permissions: 
+  checks: write
+  contents: read
+
+jobs: 
+    pre_ci:
+        uses: ./.github/workflows/pre_ci.yml
+
+    test:
+        name: Unit tests - Rust ${{ matrix.rust }}
+        needs: pre_ci
+        if: needs.pre_ci.outputs.continue
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                rust: [stable, nightly]
+        timeout-minutes: 30
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Install ${{ matrix.rust }}
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                toolchain: ${{ matrix.rust }}
+                components: rust-src
+            
+            - name: Run tests
+              run: cargo test unit --all --all-features --no-fail-fast -- --nocapture
+    
+    coverage:
+        name: Coverage - Rust ${{ matrix.rust }}
+        needs: test
+        if: needs.test.outputs.continue
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                rust: [stable]
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Install ${{ matrix.rust }}
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                toolchain: ${{ matrix.rust }}
+                components: rust-src
+            
+            - name: Setup rqlite for tests
+              run: |
+                docker compose -f rqlite-rs/tests/setup/docker-compose.yml up -d --wait
+        
+            - name: Install binstall
+              uses: cargo-bins/cargo-binstall@main
+        
+            - name: Download tarpaulin
+              run: cargo binstall cargo-tarpaulin
+
+            - name: Run coverage # exclude macros for now since they cause issues in ci
+              run: |
+                cargo tarpaulin --out xml --all-features --workspace --exclude rqlite-rs-macros -- --test-threads 1
+
+            - name: Upload to codecov
+              uses: codecov/codecov-action@v4.0.1
+              with:
+                token: ${{ secrets.CODECOV_TOKEN }}
+                slug: tomvoet/rqlite-rs
+                fail_ci_if_error: true
+
+    msrv:
+        name: MSRV - Rust 1.71.1
+        needs: pre_ci
+        if: needs.pre_ci.outputs.continue
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Install 1.71.1
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                toolchain: 1.71.1
+                components: rust-src
+
+            - name: Generate Cargo.lock
+              run: cargo generate-lockfile
+            
+            - name: Check
+              run: cargo check --locked --verbose
+            
+            - name: Check without default features
+              run: cargo check --locked --verbose --no-default-features
+    
+    clippy:
+        name: Clippy
+        needs: pre_ci
+        if: needs.pre_ci.outputs.continue
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Install stable
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                toolchain: stable
+                components: clippy, rust-src
+
+            - name: Run clippy
+              run: cargo clippy --tests --workspace -- -Dclippy::all -Dclippy::pedantic
+    
+    fmt:
+        name: Formatting
+        needs: pre_ci
+        if: needs.pre_ci.outputs.continue
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Install stable
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                toolchain: stable
+                components: rustfmt
+
+            - name: Check formatting
+              run: cargo fmt --all -- --check --verbose
+
+
+
+    
