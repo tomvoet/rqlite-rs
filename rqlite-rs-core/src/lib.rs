@@ -1,3 +1,6 @@
+#![warn(clippy::pedantic, clippy::all)]
+#![allow(clippy::module_name_repetitions)]
+
 mod column;
 mod error;
 mod from_row;

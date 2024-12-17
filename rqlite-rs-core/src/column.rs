@@ -6,6 +6,7 @@ pub struct Column {
 }
 
 impl Column {
+    #[must_use]
     pub fn new(name: String, ordinal: usize, type_data: String) -> Column {
         Column {
             name,
@@ -14,14 +15,17 @@ impl Column {
         }
     }
 
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    #[must_use]
     pub fn ordinal(&self) -> usize {
         self.ordinal
     }
 
+    #[must_use]
     pub fn type_data(&self) -> &str {
         &self.type_data
     }

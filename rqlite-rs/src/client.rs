@@ -28,7 +28,7 @@ pub struct RqliteClient {
 /// A builder for creating a [`RqliteClient`].
 #[derive(Default)]
 pub struct RqliteClientBuilder {
-    /// This uses a HashSet to ensure that no duplicate hosts are added.
+    /// This uses a `HashSet` to ensure that no duplicate hosts are added.
     hosts: HashSet<String>,
     /// The configration for the client.
     config: RqliteClientConfigBuilder,
@@ -38,13 +38,15 @@ pub struct RqliteClientBuilder {
 
 impl RqliteClientBuilder {
     /// Creates a new [`RqliteClientBuilder`].
+    #[must_use]
     pub fn new() -> Self {
         RqliteClientBuilder::default()
     }
 
     /// Adds basic auth credentials
+    #[must_use]
     pub fn auth(mut self, user: &str, password: &str) -> Self {
-        self.basic_auth = Some(general_purpose::STANDARD.encode(format!("{}:{}", user, password)));
+        self.basic_auth = Some(general_purpose::STANDARD.encode(format!("{user}:{password}")));
         self
     }
 
@@ -53,24 +55,35 @@ impl RqliteClientBuilder {
     /// The scheme is set using the `scheme` method.
     /// The host should be in the format `hostname:port`.
     /// For example, `localhost:4001`.
+    #[must_use]
+    #[allow(clippy::needless_pass_by_value)]
     pub fn known_host(mut self, host: impl ToString) -> Self {
         self.hosts.insert(host.to_string());
         self
     }
 
     /// Adds a default query parameter to the builder.
+    #[must_use]
     pub fn default_query_params(mut self, params: Vec<RqliteQueryParam>) -> Self {
         self.config = self.config.default_query_params(params);
         self
     }
 
     /// Sets the scheme for the client.
+    #[must_use]
     pub fn scheme(mut self, scheme: config::Scheme) -> Self {
         self.config = self.config.scheme(scheme);
         self
     }
 
     /// Builds the [`RqliteClient`] with the provided hosts.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - No hosts were provided
+    /// - Failed to create HTTP client
+    /// - Invalid authorization header
     pub fn build(self) -> Result<RqliteClient, ClientBuilderError> {
         if self.hosts.is_empty() {
             return Err(ClientBuilderError::NoHostsProvided);
@@ -85,7 +98,7 @@ impl RqliteClientBuilder {
         );
 
         if let Some(credentials) = self.basic_auth {
-            let basic_auth_fmt = format!("Basic {}", credentials);
+            let basic_auth_fmt = format!("Basic {credentials}");
             headers.insert(
                 header::AUTHORIZATION,
                 header::HeaderValue::from_str(basic_auth_fmt.as_str())?,
@@ -97,7 +110,7 @@ impl RqliteClientBuilder {
             .default_headers(headers);
 
         if let Some(config::Scheme::Https) = self.config.scheme {
-            client = client.https_only(true)
+            client = client.https_only(true);
         }
 
         Ok(RqliteClient {
@@ -143,16 +156,19 @@ impl RqliteClient {
                         });
                     }
                 },
-                Err(e) => self.handle_request_error(e, &mut host)?,
+                Err(e) => self.handle_request_error(&e, &mut host)?,
             }
         }
 
         Err(RequestError::NoAvailableHosts)
     }
 
+    /// Handles the error returned by the request.
+    /// If the error is a connection error or a timeout, it will try to switch to another host.
+    /// If the error is not a connection error or a timeout, it will return an error.
     fn handle_request_error(
         &self,
-        e: reqwest::Error,
+        e: &reqwest::Error,
         host: &mut String,
     ) -> Result<(), RequestError> {
         if e.is_connect() || e.is_timeout() {
@@ -217,6 +233,14 @@ impl RqliteClient {
 
     /// Executes a query that returns results.
     /// Returns a vector of [`Row`]s if the query was successful, otherwise an error.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - The query could not be converted to a `RqliteQuery`
+    /// - The request to the rqlite server failed
+    /// - The response could not be parsed
+    /// - The database returned an error
     pub async fn fetch<Q>(&self, q: Q) -> Result<Vec<Row>, RequestError>
     where
         Q: TryInto<RqliteQuery>,
@@ -235,6 +259,14 @@ impl RqliteClient {
     /// Executes a query that does not return any results.
     /// Returns the [`QueryResult`] if the query was successful, otherwise an error.
     /// Is primarily used for `INSERT`, `UPDATE`, `DELETE` and `CREATE` queries.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - The query could not be converted to a `RqliteQuery`
+    /// - The request to the rqlite server failed
+    /// - The response could not be parsed
+    /// - The database returned an error
     pub async fn exec<Q>(&self, q: Q) -> Result<QueryResult, RequestError>
     where
         Q: TryInto<RqliteQuery>,
@@ -256,6 +288,14 @@ impl RqliteClient {
     /// If a query fails, the corresponding result will contain an error.
     ///
     /// For more information on batch queries, see the [rqlite documentation](https://rqlite.io/docs/api/bulk-api/).
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - The query could not be converted to a `RqliteQuery`
+    /// - The request to the rqlite server failed
+    /// - The response could not be parsed
+    /// - The database returned an error
     pub async fn batch<Q>(&self, qs: Vec<Q>) -> Result<Vec<RqliteResult<BatchResult>>, RequestError>
     where
         Q: TryInto<RqliteQuery>,
@@ -263,7 +303,7 @@ impl RqliteClient {
     {
         let queries = qs
             .into_iter()
-            .map(|q| q.try_into())
+            .map(std::convert::TryInto::try_into)
             .collect::<Result<Vec<RqliteQuery>, _>>()?;
 
         let batch = QueryArgs::from(queries);
@@ -292,6 +332,15 @@ impl RqliteClient {
     /// Returns a vector of [`RqliteResult`]s.
     ///
     /// For more information on transactions, see the [rqlite documentation](https://rqlite.io/docs/api/api/#transactions).
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - The query could not be converted to a `RqliteQuery`
+    /// - The request to the rqlite server failed
+    /// - The response could not be parsed
+    /// - The database returned an error
+    /// - The transaction could not be executed
     pub async fn transaction<Q>(
         &self,
         qs: Vec<Q>,
@@ -302,7 +351,7 @@ impl RqliteClient {
     {
         let queries = qs
             .into_iter()
-            .map(|q| q.try_into())
+            .map(std::convert::TryInto::try_into)
             .collect::<Result<Vec<RqliteQuery>, _>>()?;
 
         let batch = QueryArgs::from(queries);
@@ -334,6 +383,14 @@ impl RqliteClient {
     /// This results in much higher write performance.
     ///
     /// For more information on queued queries, see the [rqlite documentation](https://rqlite.io/docs/api/queued-writes/).
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - The query could not be converted to a `RqliteQuery`
+    /// - The request to the rqlite server failed
+    /// - The response could not be parsed
+    /// - The database returned an error
     pub async fn queue<Q>(&self, qs: Vec<Q>) -> Result<(), RequestError>
     where
         Q: TryInto<RqliteQuery>,
@@ -341,7 +398,7 @@ impl RqliteClient {
     {
         let queries = qs
             .into_iter()
-            .map(|q| q.try_into())
+            .map(std::convert::TryInto::try_into)
             .collect::<Result<Vec<RqliteQuery>, _>>()?;
 
         let batch = QueryArgs::from(queries);
@@ -376,6 +433,12 @@ impl RqliteClient {
 
     /// Retrieves the nodes in the rqlite cluster.
     /// Returns a vector of [`Node`]s.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - The request to the rqlite server failed
+    /// - The response could not be parsed
     pub async fn nodes(&self) -> Result<Vec<Node>, RequestError> {
         let res = self
             .try_request(RequestOptions {
@@ -400,6 +463,12 @@ impl RqliteClient {
 
     /// Retrieves current the leader of the rqlite cluster.
     /// Returns a [`Node`] if a leader is found, otherwise `None`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - The request to the rqlite server failed
+    /// - The response could not be parsed
     pub async fn leader(&self) -> Result<Option<Node>, RequestError> {
         let nodes = self.nodes().await?;
 
@@ -407,7 +476,14 @@ impl RqliteClient {
     }
 
     /// Removes a node from the rqlite cluster.
-    /// Returns Ok on success and Err in case of an error.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - The request body cannot be serialized
+    /// - The request to the rqlite server failed
+    /// - The response indicates a failure
+    /// - The response body cannot be read
     pub async fn remove_node(&self, id: &str) -> Result<(), RequestError> {
         let body = serde_json::to_string(&RemoveNodeRequest { id: id.to_string() })
             .map_err(RequestError::FailedParseRequestBody)?;

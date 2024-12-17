@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Error, Debug)]
 pub enum IntoTypedError {
     #[error("Failed to convert value to type")]

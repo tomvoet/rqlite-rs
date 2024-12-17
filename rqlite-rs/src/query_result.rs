@@ -11,16 +11,19 @@ pub struct QueryResult {
 
 impl QueryResult {
     /// Returns the last insert ID, if any.
+    #[must_use]
     pub fn last_insert_id(&self) -> Option<i64> {
         self.last_insert_id
     }
 
     /// Returns the number of rows affected, if any.
+    #[must_use]
     pub fn rows_affected(&self) -> Option<i64> {
         self.rows_affected
     }
 
     /// Returns `true` if the query changed the database.
+    #[must_use]
     pub fn changed(&self) -> bool {
         self.rows_affected.unwrap_or(0) > 0
     }

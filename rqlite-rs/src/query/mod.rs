@@ -119,16 +119,15 @@ impl RqliteQuery {
 
     pub(crate) fn endpoint(&self) -> String {
         let resource = match self.op {
-            Operation::Create => "execute",
-            Operation::Select => "query",
-            Operation::Update => "execute",
-            Operation::Delete => "execute",
-            Operation::Insert => "execute",
-            Operation::Pragma => "query",
-            Operation::Drop => "execute",
+            Operation::Create
+            | Operation::Update
+            | Operation::Delete
+            | Operation::Insert
+            | Operation::Drop => "execute",
+            Operation::Select | Operation::Pragma => "query",
         };
 
-        format!("db/{}", resource)
+        format!("db/{resource}")
     }
 }
 
@@ -145,6 +144,10 @@ pub enum Operation {
 }
 
 impl Operation {
+    /// Convert a SQL query string into an [`Operation`].
+    ///
+    /// # Errors
+    /// Returns [`QueryBuilderError::InvalidOperation`] if the query string does not start with a valid operation keyword.
     pub fn from_query_string(query: &str) -> Result<Operation, QueryBuilderError> {
         match query.to_lowercase() {
             q if q.starts_with("create") => Ok(Operation::Create),
@@ -180,10 +183,7 @@ macro_rules! query {
     // In this macro named blocks are used to allow using early returns.
     ( $query:expr ) => {{
         'blk: {
-            let op = match $crate::query::Operation::from_query_string($query) {
-                Ok(op) => op,
-                Err(_) => break 'blk Err($crate::error::QueryBuilderError::InvalidQuery($query.to_string())),
-            };
+            let Ok(op) = $crate::query::Operation::from_query_string($query) else { break 'blk Err($crate::error::QueryBuilderError::InvalidQuery($query.to_string())) };
 
             Ok($crate::query::RqliteQuery {
                 query: $query.to_string(),
