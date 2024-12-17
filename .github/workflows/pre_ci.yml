@@ -29,7 +29,11 @@ jobs:
         if: steps.is_local_pull_request.outputs.value
 
       - id: is_noop_merge
-        run: if git diff HEAD^2 --quiet; then echo value=true >> $GITHUB_OUTPUT; fi
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          if git diff origin/${{ github.base_ref }}...HEAD --quiet; then 
+            echo value=true >> $GITHUB_OUTPUT
+          fi
         if: steps.is_local_pull_request.outputs.value
 
       - id: decision
