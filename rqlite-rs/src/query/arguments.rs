@@ -19,6 +19,7 @@ pub trait RqliteArgumentRaw {
 
 impl RqliteArgumentRaw for i32 {
     fn encode(&self) -> RqliteArgument {
+        #[allow(clippy::cast_lossless)]
         RqliteArgument::I64(*self as i64)
     }
 }
@@ -31,6 +32,7 @@ impl RqliteArgumentRaw for i64 {
 
 impl RqliteArgumentRaw for usize {
     fn encode(&self) -> RqliteArgument {
+        #[allow(clippy::cast_possible_wrap)]
         RqliteArgument::I64(*self as i64)
     }
 }
@@ -55,7 +57,7 @@ impl RqliteArgumentRaw for bool {
 
 impl RqliteArgumentRaw for &str {
     fn encode(&self) -> RqliteArgument {
-        RqliteArgument::String(self.to_string())
+        RqliteArgument::String((*self).to_string())
     }
 }
 

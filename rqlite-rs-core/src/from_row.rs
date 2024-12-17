@@ -1,6 +1,10 @@
 use crate::{row::Row, IntoTypedError};
 
 pub trait FromRow: Sized {
+    /// Convert a `Row` into `Self`
+    ///
+    /// # Errors
+    /// If the conversion fails, returns `IntoTypedError`
     fn from_row(row: Row) -> Result<Self, IntoTypedError>;
 }
 
@@ -18,6 +22,7 @@ macro_rules! impl_from_row_for_tuple {
                 #[allow(arithmetic_overflow)]
                 let expected: i32 = 0 $(+ $idx - ($idx - 1))+;
 
+                #[allow(clippy::cast_sign_loss)]
                 let expected = expected as usize;
 
                 if columns != expected {

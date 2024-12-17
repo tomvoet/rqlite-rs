@@ -1,8 +1,15 @@
+#![warn(clippy::pedantic, clippy::all)]
+
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Type};
 
 #[proc_macro_derive(FromRow)]
+/// Derives the `FromRow` trait for a struct.
+///
+/// # Panics
+///
+/// This function will panic if the field name cannot be converted to a string.
 pub fn derive_from_row(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 

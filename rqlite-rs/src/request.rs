@@ -70,10 +70,10 @@ impl RequestQueryParam {
 
     fn is_same_key(&self, other: &RequestQueryParam) -> bool {
         match (self, other) {
-            (RequestQueryParam::Bool(k1), RequestQueryParam::Bool(k2)) => k1 == k2,
-            (RequestQueryParam::KV(k1, _), RequestQueryParam::KV(k2, _)) => k1 == k2,
-            (RequestQueryParam::Bool(k1), RequestQueryParam::KV(k2, _)) => k1 == k2,
-            (RequestQueryParam::KV(k1, _), RequestQueryParam::Bool(k2)) => k1 == k2,
+            (
+                RequestQueryParam::Bool(k1) | RequestQueryParam::KV(k1, _),
+                RequestQueryParam::Bool(k2) | RequestQueryParam::KV(k2, _),
+            ) => k1 == k2,
         }
     }
 }
@@ -87,7 +87,10 @@ impl RequestQueryParams {
     }
 
     pub(crate) fn into_reqwest_query(self) -> Vec<(String, String)> {
-        self.0.into_iter().map(|p| p.into_reqwest_query()).collect()
+        self.0
+            .into_iter()
+            .map(RequestQueryParam::into_reqwest_query)
+            .collect()
     }
 
     pub(crate) fn merge(&mut self, other: RequestQueryParams) {
@@ -135,7 +138,7 @@ pub enum RqliteQueryParam {
     Freshness(NonZeroU16),
     /// Strict freshness
     FreshnessStrict,
-    /// Disable RANDOM() rewriting
+    /// Disable `RANDOM()` rewriting
     NoRWRandom,
     /// Version
     Ver(String),
@@ -149,11 +152,11 @@ impl RqliteQueryParam {
             RqliteQueryParam::Transaction => RequestQueryParam::Bool("transaction".to_string()),
             RqliteQueryParam::Queue => RequestQueryParam::Bool("queue".to_string()),
             RqliteQueryParam::Timeout(t) => {
-                RequestQueryParam::KV("timeout".to_string(), format!("{}s", t))
+                RequestQueryParam::KV("timeout".to_string(), format!("{t}s"))
             }
             RqliteQueryParam::Level(l) => RequestQueryParam::KV("level".to_string(), l.to_string()),
             RqliteQueryParam::Freshness(f) => {
-                RequestQueryParam::KV("freshness".to_string(), format!("{}s", f))
+                RequestQueryParam::KV("freshness".to_string(), format!("{f}s"))
             }
             RqliteQueryParam::FreshnessStrict => {
                 RequestQueryParam::Bool("freshness_strict".to_string())

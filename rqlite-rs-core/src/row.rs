@@ -12,6 +12,7 @@ pub struct Row {
 }
 
 impl Row {
+    #[must_use]
     pub fn new(
         columns: &Arc<Vec<Column>>,
         column_names: &Arc<HashMap<String, usize>>,
@@ -24,14 +25,20 @@ impl Row {
         }
     }
 
+    #[must_use]
     pub fn columns(&self) -> &Arc<Vec<Column>> {
         &self.columns
     }
 
+    #[must_use]
     pub fn column_names(&self) -> &Arc<HashMap<String, usize>> {
         &self.column_names
     }
 
+    /// Get a value by column name
+    ///
+    /// # Errors
+    /// If the column name is not found, returns `IntoTypedError::ColumnNotFound`
     pub fn get<T: serde::de::DeserializeOwned>(&self, name: &str) -> Result<T, IntoTypedError> {
         let index = self
             .column_names
@@ -49,6 +56,10 @@ impl Row {
         Ok(value)
     }
 
+    /// Get a value by column name, returning `None` if the value is `null`
+    ///
+    /// # Errors
+    /// If the column name is not found, returns `IntoTypedError::ColumnNotFound`
     pub fn get_opt<T: serde::de::DeserializeOwned>(
         &self,
         name: &str,
@@ -63,16 +74,19 @@ impl Row {
             .get(*index)
             .ok_or(IntoTypedError::ValueNotFound)?;
 
-        match value {
-            Value::Null => Ok(None),
-            _ => {
-                let value = serde_json::from_value(value.clone())
-                    .map_err(IntoTypedError::ConversionError)?;
-                Ok(Some(value))
-            }
+        if value == &Value::Null {
+            Ok(None)
+        } else {
+            let value =
+                serde_json::from_value(value.clone()).map_err(IntoTypedError::ConversionError)?;
+            Ok(Some(value))
         }
     }
 
+    /// Get a value by index
+    ///
+    /// # Errors
+    /// If the index is out of bounds, returns `IntoTypedError::ValueNotFound`
     pub fn get_by_index<T: serde::de::DeserializeOwned>(
         &self,
         index: usize,
@@ -86,6 +100,10 @@ impl Row {
         Ok(value)
     }
 
+    /// Get a value by index, returning `None` if the value is `null`
+    ///
+    /// # Errors
+    /// If the index is out of bounds, returns `IntoTypedError::ValueNotFound`
     pub fn get_by_index_opt<T: serde::de::DeserializeOwned>(
         &self,
         index: usize,
@@ -94,28 +112,34 @@ impl Row {
             return Ok(None);
         };
 
-        match value {
-            Value::Null => Ok(None),
-            _ => {
-                let value = serde_json::from_value(value.clone())
-                    .map_err(IntoTypedError::ConversionError)?;
-                Ok(Some(value))
-            }
+        if value == &Value::Null {
+            Ok(None)
+        } else {
+            let value =
+                serde_json::from_value(value.clone()).map_err(IntoTypedError::ConversionError)?;
+            Ok(Some(value))
         }
     }
 
+    #[must_use]
     pub fn values(&self) -> &[Value] {
         &self.values
     }
 
+    #[must_use]
     pub fn len(&self) -> usize {
         self.values.len()
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.values.is_empty()
     }
 
+    /// Convert the row into a typed struct
+    ///
+    /// # Errors
+    /// If the conversion fails, returns `IntoTypedError`
     pub fn into_typed<T>(self) -> Result<T, IntoTypedError>
     where
         T: FromRow,

@@ -1,5 +1,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("lib.md")]
+#![warn(clippy::pedantic, clippy::all)]
+#![allow(clippy::module_name_repetitions, clippy::similar_names)]
 
 pub mod client;
 pub mod query;
