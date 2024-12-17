@@ -16,13 +16,8 @@ permissions:
   contents: read
 
 jobs: 
-  pre_ci:
-    uses: ./.github/workflows/pre_ci.yml
-
   test:
     name: Unit tests - Rust ${{ matrix.rust }}
-    needs: pre_ci
-    if: needs.pre_ci.outputs.continue
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -44,7 +39,6 @@ jobs:
   coverage:
     name: Coverage - Rust ${{ matrix.rust }}
     needs: test
-    if: needs.pre_ci.outputs.continue
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -82,8 +76,6 @@ jobs:
 
   msrv:
     name: MSRV - Rust 1.71.1
-    needs: pre_ci
-    if: needs.pre_ci.outputs.continue
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -105,8 +97,6 @@ jobs:
   
   clippy:
     name: Clippy
-    needs: pre_ci
-    if: needs.pre_ci.outputs.continue
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -122,8 +112,6 @@ jobs:
   
   fmt:
     name: Formatting
-    needs: pre_ci
-    if: needs.pre_ci.outputs.continue
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
