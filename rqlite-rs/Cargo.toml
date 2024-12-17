@@ -23,7 +23,7 @@ macros = ["rqlite-rs-macros"]
 
 [dependencies]
 rqlite-rs-macros = { version = "0.2.10", path = "../rqlite-rs-macros", optional = true }
-rqlite-rs-core = { version = "0.2.11", path = "../rqlite-rs-core" }
+rqlite-rs-core = { version = "0.2.12", path = "../rqlite-rs-core" }
 reqwest = { version = "0.12.8", default-features = false }
 base64 = "0.22.1"
 serde.workspace = true

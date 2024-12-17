@@ -18,5 +18,5 @@ proc-macro = true
 
 [dependencies]
 quote = "1.0.37"
-rqlite-rs-core = { version = "0.2.11", path = "../rqlite-rs-core" }
+rqlite-rs-core = { version = "0.2.12", path = "../rqlite-rs-core" }
 syn = { version = "2.0.79", features = ["full", "parsing"] }
