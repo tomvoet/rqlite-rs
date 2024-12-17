@@ -1,6 +1,6 @@
 use rqlite_rs::{config::Scheme, request::RqliteQueryParam, RqliteClient, RqliteClientBuilder};
 
-pub async fn get_client() -> RqliteClient {
+pub fn get_client() -> RqliteClient {
     RqliteClientBuilder::default()
         .known_host("localhost:4001")
         .scheme(Scheme::Http)
@@ -8,7 +8,7 @@ pub async fn get_client() -> RqliteClient {
         .unwrap()
 }
 
-pub async fn get_client_with_default_query_params() -> RqliteClient {
+pub fn get_client_with_default_query_params() -> RqliteClient {
     RqliteClientBuilder::default()
         .known_host("localhost:4001")
         .scheme(Scheme::Http)
@@ -17,7 +17,7 @@ pub async fn get_client_with_default_query_params() -> RqliteClient {
         .unwrap()
 }
 
-pub async fn get_client_with_invalid_host() -> RqliteClient {
+pub fn get_client_with_invalid_host() -> RqliteClient {
     RqliteClientBuilder::default()
         .known_host("localhost:4042")
         .scheme(Scheme::Http)
@@ -26,7 +26,7 @@ pub async fn get_client_with_invalid_host() -> RqliteClient {
 }
 
 pub async fn get_client_and_reset_db() -> RqliteClient {
-    let client = get_client().await;
+    let client = get_client();
 
     let query = "DROP TABLE IF EXISTS test";
     let _ = client.exec(query).await.unwrap();

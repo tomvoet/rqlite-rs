@@ -4,7 +4,7 @@ mod common;
 
 #[tokio::test]
 async fn integration_ready() {
-    let client = common::get_client().await;
+    let client = common::get_client();
 
     let ready = client.ready().await;
 
@@ -13,7 +13,7 @@ async fn integration_ready() {
 
 #[tokio::test]
 async fn integration_nodes() {
-    let client = common::get_client().await;
+    let client = common::get_client();
 
     let nodes = client.nodes().await.unwrap();
 
@@ -22,7 +22,7 @@ async fn integration_nodes() {
 
 #[tokio::test]
 async fn integration_leader() {
-    let client = common::get_client().await;
+    let client = common::get_client();
 
     let leader = client.leader().await.unwrap();
 
@@ -61,9 +61,8 @@ async fn integration_execute_batch() {
         RqliteResult::Success(BatchResult::QueryResult(_))
     ));
 
-    let insert_result = match &results[1] {
-        RqliteResult::Success(BatchResult::QueryResult(result)) => result,
-        _ => panic!("Expected success"),
+    let RqliteResult::Success(BatchResult::QueryResult(insert_result)) = &results[1] else {
+        panic!("Expected success")
     };
 
     assert!(insert_result.changed());
@@ -101,12 +100,12 @@ async fn integration_fetch_typed_struct_named() {
     let rows = client.fetch(query).await.unwrap();
 
     #[derive(FromRow)]
-    struct Test {
+    struct TestStruct {
         id: i32,
         name: String,
     }
 
-    let tests = rows.into_typed::<Test>().unwrap();
+    let tests = rows.into_typed::<TestStruct>().unwrap();
 
     assert_eq!(tests.len(), 1);
     assert_eq!(tests[0].id, 1);
@@ -199,7 +198,7 @@ async fn integration_queue() {
 
 #[tokio::test]
 async fn integration_default_query_params() {
-    let client = common::get_client_with_default_query_params().await;
+    let client = common::get_client_with_default_query_params();
 
     let query = "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)";
 
@@ -210,7 +209,7 @@ async fn integration_default_query_params() {
 
 #[tokio::test]
 async fn integration_request_fail() {
-    let client = common::get_client_with_invalid_host().await;
+    let client = common::get_client_with_invalid_host();
 
     let query = "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)";
 
