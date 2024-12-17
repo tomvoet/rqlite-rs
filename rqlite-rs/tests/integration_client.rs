@@ -1,6 +1,16 @@
+#![warn(clippy::pedantic)]
 use rqlite_rs::{batch::BatchResult, prelude::*, response::RqliteResult};
 
 mod common;
+
+#[derive(FromRow)]
+struct TestStructNamed {
+    id: i32,
+    name: String,
+}
+
+#[derive(FromRow)]
+struct TestStructUnnamed(i32, String);
 
 #[tokio::test]
 async fn integration_ready() {
@@ -87,6 +97,7 @@ async fn integration_fetch() {
 }
 
 #[tokio::test]
+#[warn(clippy::pedantic)]
 async fn integration_fetch_typed_struct_named() {
     let client = common::get_client_and_reset_db().await;
 
@@ -99,13 +110,7 @@ async fn integration_fetch_typed_struct_named() {
     let query = "SELECT * FROM test";
     let rows = client.fetch(query).await.unwrap();
 
-    #[derive(FromRow)]
-    struct TestStruct {
-        id: i32,
-        name: String,
-    }
-
-    let tests = rows.into_typed::<TestStruct>().unwrap();
+    let tests = rows.into_typed::<TestStructNamed>().unwrap();
 
     assert_eq!(tests.len(), 1);
     assert_eq!(tests[0].id, 1);
@@ -125,10 +130,7 @@ async fn integration_fetch_typed_struct_unnamed() {
     let query = "SELECT * FROM test";
     let rows = client.fetch(query).await.unwrap();
 
-    #[derive(FromRow)]
-    struct Test(i32, String);
-
-    let tests = rows.into_typed::<Test>().unwrap();
+    let tests = rows.into_typed::<TestStructUnnamed>().unwrap();
 
     assert_eq!(tests.len(), 1);
     assert_eq!(tests[0].0, 1);
