@@ -139,7 +139,8 @@ mod tests {
             let arg = arg!(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
             assert_eq!(arg, RqliteArgument::String("AQIDBAUGBwgJCg==".to_string()));
 
-            let arg = arg!([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+            let array = [1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+            let arg = arg!(array[..]);
             assert_eq!(arg, RqliteArgument::String("AQIDBAUGBwgJCg==".to_string()));
         }
     }
