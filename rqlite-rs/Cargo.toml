@@ -11,6 +11,7 @@ edition.workspace = true
 keywords.workspace = true
 categories.workspace = true
 repository.workspace = true
+rust-version.workspace = true
 
 [features]
 default = ["macros", "native-tls"]
