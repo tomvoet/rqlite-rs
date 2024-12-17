@@ -19,6 +19,8 @@ pub(crate) mod select;
 #[cfg(feature = "macros")]
 pub use rqlite_rs_macros::*;
 
+pub use rqlite_rs_core::decode;
+
 pub mod prelude {
     pub use crate::client::RqliteClient;
     pub use crate::client::RqliteClientBuilder;

@@ -1,3 +1,4 @@
+use base64::{engine::general_purpose, Engine};
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
@@ -67,6 +68,20 @@ impl RqliteArgumentRaw for String {
     }
 }
 
+#[cfg(feature = "blob")]
+impl RqliteArgumentRaw for Vec<u8> {
+    fn encode(&self) -> RqliteArgument {
+        RqliteArgument::String(general_purpose::STANDARD.encode(self))
+    }
+}
+
+#[cfg(feature = "blob")]
+impl RqliteArgumentRaw for [u8] {
+    fn encode(&self) -> RqliteArgument {
+        RqliteArgument::String(general_purpose::STANDARD.encode(self))
+    }
+}
+
 impl<T> RqliteArgumentRaw for Option<T>
 where
     T: RqliteArgumentRaw,
@@ -118,5 +133,14 @@ mod tests {
 
         let arg = arg!(None::<i64>);
         assert_eq!(arg, RqliteArgument::Null);
+
+        #[cfg(feature = "blob")]
+        {
+            let arg = arg!(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+            assert_eq!(arg, RqliteArgument::String("AQIDBAUGBwgJCg==".to_string()));
+
+            let arg = arg!([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+            assert_eq!(arg, RqliteArgument::String("AQIDBAUGBwgJCg==".to_string()));
+        }
     }
 }
