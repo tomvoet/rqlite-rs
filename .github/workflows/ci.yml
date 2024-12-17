@@ -44,7 +44,7 @@ jobs:
   coverage:
     name: Coverage - Rust ${{ matrix.rust }}
     needs: test
-    if: needs.test.outputs.continue
+    if: needs.pre_ci.outputs.continue
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
