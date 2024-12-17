@@ -35,3 +35,8 @@ async fn main() -> anyhow::Result<()> {
 ```
 
 This will print all tables in the rqlite database.
+
+## Features
+
+- **macros**: Use the `FromRow` derive macro to automatically convert rows to structs.
+- **blob**: Support for `Vec<u8>` and [u8] as a blob type.

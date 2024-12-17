@@ -1,4 +1,4 @@
-/// Decodes a base64 encoded string into a blob-like type.
+/// Decodes a base64 encoded string into a blob-like type. This function is only available when the `blob` feature is enabled.
 ///
 /// # Errors
 ///
