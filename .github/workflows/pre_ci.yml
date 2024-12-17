@@ -1,0 +1,38 @@
+# See dtolnay/thiserror for the motivation behind this file.
+
+name: pre_ci
+
+on:
+  workflow_call:
+    outputs:
+      continue:
+        value: ${{jobs.pre_ci.outputs.continue}}
+
+permissions:
+  contents: read
+
+jobs:
+  pre_ci:
+    runs-on: ubuntu-latest
+    outputs:
+      continue: ${{steps.decision.outputs.continue}}
+
+    steps:
+      - id: is_local_pull_request
+        run: echo value=true >> $GITHUB_OUTPUT
+        if: github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
+
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+        if: steps.is_local_pull_request.outputs.value
+
+      - id: is_noop_merge
+        run: if git diff HEAD^2 --quiet; then echo value=true >> $GITHUB_OUTPUT; fi
+        if: steps.is_local_pull_request.outputs.value
+
+      - id: decision
+        run: echo continue=true >> $GITHUB_OUTPUT
+        if: |
+          !steps.is_local_pull_request.outputs.value || !steps.is_noop_merge.outputs.value
