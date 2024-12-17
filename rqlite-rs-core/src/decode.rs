@@ -12,3 +12,17 @@ where
 
     general_purpose::STANDARD.decode(blob).map(T::from)
 }
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    #[cfg(feature = "blob")]
+    fn unit_decode_blob() {
+        use super::*;
+
+        let blob = "SGVsbG8gV29ybGQ=";
+        let decoded = decode_blob::<Vec<u8>>(blob).unwrap();
+        assert_eq!(decoded, b"Hello World");
+    }
+}
