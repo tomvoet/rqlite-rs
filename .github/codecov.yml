@@ -1,0 +1,8 @@
+codecov: 
+  token: 75e41ee5-3fec-4799-81ae-8ac942b71ad3
+  bot: codecov[bot]
+
+coverage:
+  precision: 2
+  round: nearest
+  range: "80...100"
