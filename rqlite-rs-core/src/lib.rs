@@ -2,6 +2,7 @@
 #![allow(clippy::module_name_repetitions)]
 
 mod column;
+pub mod decode;
 mod error;
 mod from_row;
 mod into_typed_rows;

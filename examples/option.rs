@@ -12,6 +12,10 @@ async fn main() -> anyhow::Result<()> {
         .known_host("localhost:4001")
         .build()?;
 
+    let drop_table_query = rqlite_rs::query!("DROP TABLE IF EXISTS test")?;
+
+    client.exec(drop_table_query).await?;
+
     let create_table_query = rqlite_rs::query!(
         "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY, optional INTEGER)"
     )?;

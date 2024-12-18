@@ -11,4 +11,7 @@ pub enum IntoTypedError {
     ValueNotFound,
     #[error("Expected {0} columns, found {1}")]
     ColumnCountMismatch(usize, usize),
+    #[cfg(feature = "blob")]
+    #[error("Could not decode blob {0}")]
+    BlobDecodeError(#[from] base64::DecodeError),
 }

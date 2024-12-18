@@ -4,6 +4,8 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Type};
 
+mod field_type;
+
 #[proc_macro_derive(FromRow)]
 /// Derives the `FromRow` trait for a struct.
 ///
@@ -19,19 +21,28 @@ pub fn derive_from_row(input: TokenStream) -> TokenStream {
                 let field_name = field.ident.as_ref().unwrap();
                 let field_name_string = field_name.to_string();
 
-                match &field.ty {
-                    // If the field is an Option, we need to use `get_opt` instead of `get`
-                    Type::Path(type_path)
-                        if type_path.path.segments.last().unwrap().ident == "Option" =>
-                    {
-                        quote! {
-                            #field_name: row.get_opt(#field_name_string).unwrap_or(None)
-                        }
+                if let Type::Path(type_path) = &field.ty {
+                    match field_type::FieldType::from_type_path(type_path) {
+                        field_type::FieldType::Option => quote! {
+                            #field_name: row.get_opt(#field_name_string)?
+                        },
+                        field_type::FieldType::Blob => {
+                            #[cfg(feature = "blob")]
+                            quote! {
+                                #field_name: rqlite_rs::decode::decode_blob(&row.get::<String>(#field_name_string)?)?
+                            }
+                            #[cfg(not(feature = "blob"))]
+                            quote! {
+                                compile_error!("The `blob` feature must be enabled to use the `Blob` field type")
+                            }
+                        },
+                        field_type::FieldType::Normal => quote! {
+                            #field_name: row.get(#field_name_string)?
+                        },
                     }
-                    _ => quote! {
-                        #field_name: row.get(#field_name_string)?
-                    },
-                }
+                } else { quote! {
+                    #field_name: row.get(#field_name_string)?
+                } }
             });
 
             let struct_name = &input.ident;
@@ -51,13 +62,29 @@ pub fn derive_from_row(input: TokenStream) -> TokenStream {
             let field_vals = fields.unnamed.iter().enumerate().map(|(index, field)| {
                 let index = syn::Index::from(index);
 
-                match &field.ty {
-                    Type::Path(type_path)
-                        if type_path.path.segments.last().unwrap().ident == "Option" =>
-                    {
-                        quote! { row.get_by_index_opt(#index)? }
+                if let Type::Path(type_path) = &field.ty {
+                    match field_type::FieldType::from_type_path(type_path) {
+                        field_type::FieldType::Option => quote! {
+                            row.get_by_index_opt(#index)?
+                        },
+                        field_type::FieldType::Blob => {
+                            #[cfg(feature = "blob")]
+                            quote! {
+                                rqlite_rs::decode::decode_blob(&row.get_by_index::<String>(#index)?)?
+                            }
+                            #[cfg(not(feature = "blob"))]
+                            quote! {
+                                compile_error!("The `blob` feature must be enabled to use the `Blob` field type")
+                            }
+                        },
+                        field_type::FieldType::Normal => quote! {
+                            row.get_by_index(#index)?
+                        },
                     }
-                    _ => quote! { row.get_by_index(#index)? },
+                } else {
+                    quote! {
+                        row.get_by_index(#index)?
+                    }
                 }
             });
 

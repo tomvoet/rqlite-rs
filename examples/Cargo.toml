@@ -5,7 +5,7 @@ publish = false
 version = "0.0.0"
 
 [dev-dependencies]
-rqlite-rs = { version = "0.4.1", path = "../rqlite-rs" }
+rqlite-rs = { path = "../rqlite-rs", features = ["blob"] }
 tokio = { version = "1.40.0", features = ["rt-multi-thread", "macros"] }
 anyhow = "1.0.90"
 
@@ -43,4 +43,9 @@ doc-scrape-examples = true
 [[example]]
 name = "option"
 path = "option.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "blob"
+path = "blob.rs"
 doc-scrape-examples = true
