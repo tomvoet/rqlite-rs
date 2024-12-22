@@ -27,13 +27,13 @@ pub fn derive_from_row(input: TokenStream) -> TokenStream {
                             #field_name: row.get_opt(#field_name_string)?
                         },
                         field_type::FieldType::Blob => {
-                            #[cfg(feature = "blob")]
+                            #[cfg(feature = "fast-blob")]
                             quote! {
                                 #field_name: rqlite_rs::decode::decode_blob(&row.get::<String>(#field_name_string)?)?
                             }
-                            #[cfg(not(feature = "blob"))]
+                            #[cfg(not(feature = "fast-blob"))]
                             quote! {
-                                compile_error!("The `blob` feature must be enabled to use the `Blob` field type")
+                                #field_name: row.get(#field_name_string)?
                             }
                         },
                         field_type::FieldType::Normal => quote! {
@@ -68,13 +68,13 @@ pub fn derive_from_row(input: TokenStream) -> TokenStream {
                             row.get_by_index_opt(#index)?
                         },
                         field_type::FieldType::Blob => {
-                            #[cfg(feature = "blob")]
+                            #[cfg(feature = "fast-blob")]
                             quote! {
                                 rqlite_rs::decode::decode_blob(&row.get_by_index::<String>(#index)?)?
                             }
-                            #[cfg(not(feature = "blob"))]
+                            #[cfg(not(feature = "fast-blob"))]
                             quote! {
-                                compile_error!("The `blob` feature must be enabled to use the `Blob` field type")
+                                row.get_by_index(#index)?
                             }
                         },
                         field_type::FieldType::Normal => quote! {

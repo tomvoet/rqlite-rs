@@ -39,4 +39,4 @@ This will print all tables in the rqlite database.
 ## Features
 
 - **macros**: Use the `FromRow` derive macro to automatically convert rows to structs.
-- **blob**: Support for `Vec<u8>` and [u8] as a blob type.
+- **fast-blob**: When enabled, the client will use base64 encoding for retrieving blobs, reducing the amount of data transferred.

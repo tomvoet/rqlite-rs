@@ -13,8 +13,27 @@ impl RqliteClientConfigBuilder {
     }
 
     pub(crate) fn build(self) -> RqliteClientConfig {
+        // When fast-blob is disabled, we need to retrieve blob_arrays if possible because we dont decode base64
+        #[cfg(not(feature = "fast-blob"))]
+        let default_query_params = {
+            let mut query_params = RqliteQueryParams::new()
+                .blob_array()
+                .into_request_query_params();
+
+            if let Some(default_query_params) = self.default_query_params {
+                let default_query_params = default_query_params.into_request_query_params();
+                query_params.merge(default_query_params);
+            }
+
+            Some(query_params)
+        };
+
+        // When fast-blob is enabled, we dont need to retrieve blob_arrays because we decode base64
+        #[cfg(feature = "fast-blob")]
+        let default_query_params = self.default_query_params.map(RequestQueryParams::from);
+
         RqliteClientConfig {
-            default_query_params: self.default_query_params.map(RequestQueryParams::from),
+            default_query_params,
             scheme: self.scheme.unwrap_or(Scheme::Http),
         }
     }

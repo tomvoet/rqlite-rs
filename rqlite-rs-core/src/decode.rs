@@ -3,7 +3,7 @@
 /// # Errors
 ///
 /// This function will return an error if the input string is not valid base64.
-#[cfg(feature = "blob")]
+#[cfg(feature = "fast-blob")]
 pub fn decode_blob<T>(blob: &str) -> Result<T, base64::DecodeError>
 where
     T: From<Vec<u8>>,
@@ -17,7 +17,7 @@ where
 mod tests {
 
     #[test]
-    #[cfg(feature = "blob")]
+    #[cfg(feature = "fast-blob")]
     fn unit_decode_blob() {
         use super::*;
 

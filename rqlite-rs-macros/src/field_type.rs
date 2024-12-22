@@ -12,7 +12,6 @@ impl FieldType {
             return Self::Option;
         }
 
-        #[cfg(feature = "blob")]
         if is_vec_type(type_path) && has_u8_generic_arg(type_path) {
             return Self::Blob;
         }

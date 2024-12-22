@@ -14,7 +14,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [features]
-blob = ["base64"]
+fast-blob = ["base64"]
 
 [dependencies]
 serde.workspace = true

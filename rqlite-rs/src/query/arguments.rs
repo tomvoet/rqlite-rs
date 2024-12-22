@@ -1,4 +1,3 @@
-use base64::{engine::general_purpose, Engine};
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
@@ -9,6 +8,7 @@ pub enum RqliteArgument {
     F64(f64),
     F32(f32),
     Bool(bool),
+    Blob(Vec<u8>),
     Null,
 }
 
@@ -68,17 +68,15 @@ impl RqliteArgumentRaw for String {
     }
 }
 
-#[cfg(feature = "blob")]
 impl RqliteArgumentRaw for Vec<u8> {
     fn encode(&self) -> RqliteArgument {
-        RqliteArgument::String(general_purpose::STANDARD.encode(self))
+        RqliteArgument::Blob(self.to_owned())
     }
 }
 
-#[cfg(feature = "blob")]
-impl RqliteArgumentRaw for [u8] {
+impl RqliteArgumentRaw for &[u8] {
     fn encode(&self) -> RqliteArgument {
-        RqliteArgument::String(general_purpose::STANDARD.encode(self))
+        RqliteArgument::Blob(self.to_vec())
     }
 }
 
@@ -134,14 +132,10 @@ mod tests {
         let arg = arg!(None::<i64>);
         assert_eq!(arg, RqliteArgument::Null);
 
-        #[cfg(feature = "blob")]
-        {
-            let arg = arg!(vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-            assert_eq!(arg, RqliteArgument::String("AQIDBAUGBwgJCg==".to_string()));
+        let arg = arg!(vec![1, 2, 3]);
+        assert_eq!(arg, RqliteArgument::Blob(vec![1, 2, 3]));
 
-            let array = [1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-            let arg = arg!(array[..]);
-            assert_eq!(arg, RqliteArgument::String("AQIDBAUGBwgJCg==".to_string()));
-        }
+        let arg = arg!(&[1u8, 2, 3][..]);
+        assert_eq!(arg, RqliteArgument::Blob(vec![1, 2, 3]));
     }
 }

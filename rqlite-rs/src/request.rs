@@ -142,6 +142,9 @@ pub enum RqliteQueryParam {
     NoRWRandom,
     /// Version
     Ver(String),
+    /// Retrieve blobs as u8 arrays instead of base64 encoded strings
+    /// Defaults to true when the `fast-blob` feature is disabled
+    BlobArray,
 }
 
 impl RqliteQueryParam {
@@ -163,6 +166,7 @@ impl RqliteQueryParam {
             }
             RqliteQueryParam::NoRWRandom => RequestQueryParam::Bool("norwrandom".to_string()),
             RqliteQueryParam::Ver(v) => RequestQueryParam::KV("ver".to_string(), v),
+            RqliteQueryParam::BlobArray => RequestQueryParam::Bool("blob_array".to_string()),
         }
     }
 }
@@ -223,6 +227,11 @@ impl RqliteQueryParams {
 
     pub fn ver(mut self, v: String) -> Self {
         self.0.push(RqliteQueryParam::Ver(v));
+        self
+    }
+
+    pub fn blob_array(mut self) -> Self {
+        self.0.push(RqliteQueryParam::BlobArray);
         self
     }
 
