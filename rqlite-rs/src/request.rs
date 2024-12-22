@@ -274,6 +274,7 @@ mod tests {
             .freshness_strict()
             .norwrandom()
             .ver("1".to_string())
+            .blob_array()
     }
 
     #[test]
@@ -337,6 +338,7 @@ mod tests {
         assert!(query.contains("freshness_strict=true"));
         assert!(query.contains("norwrandom=true"));
         assert!(query.contains("ver=1"));
+        assert!(query.contains("blob_array=true"));
     }
 
     #[test]
