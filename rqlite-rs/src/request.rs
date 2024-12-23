@@ -283,9 +283,9 @@ mod tests {
         let req_params = RequestQueryParams::from(params);
 
         #[cfg(feature = "fast-blob")]
-        assert_eq!(req_params.0.len(), 10);
-        #[cfg(not(feature = "fast-blob"))]
         assert_eq!(req_params.0.len(), 11);
+        #[cfg(not(feature = "fast-blob"))]
+        assert_eq!(req_params.0.len(), 12);
     }
 
     #[test]
@@ -296,9 +296,9 @@ mod tests {
         let reqwest_query = req_params.into_reqwest_query();
 
         #[cfg(feature = "fast-blob")]
-        assert_eq!(reqwest_query.len(), 10);
-        #[cfg(not(feature = "fast-blob"))]
         assert_eq!(reqwest_query.len(), 11);
+        #[cfg(not(feature = "fast-blob"))]
+        assert_eq!(reqwest_query.len(), 12);
     }
 
     #[test]
@@ -359,9 +359,9 @@ mod tests {
         let req_params = req.params.unwrap();
 
         #[cfg(feature = "fast-blob")]
-        assert_eq!(req_params.0.len(), 10);
-        #[cfg(not(feature = "fast-blob"))]
         assert_eq!(req_params.0.len(), 11);
+        #[cfg(not(feature = "fast-blob"))]
+        assert_eq!(req_params.0.len(), 12);
     }
 
     #[test]
