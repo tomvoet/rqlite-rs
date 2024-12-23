@@ -35,3 +35,8 @@ async fn main() -> anyhow::Result<()> {
 ```
 
 This will print all tables in the rqlite database.
+
+## Features
+
+- **macros**: Use the `FromRow` derive macro to automatically convert rows to structs.
+- **fast-blob**: When enabled, the client will use base64 encoding for retrieving blobs, reducing the amount of data transferred.

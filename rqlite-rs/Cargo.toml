@@ -20,12 +20,13 @@ native-tls = ["reqwest/native-tls"]
 rustls-tls = ["reqwest/rustls-tls"]
 
 macros = ["rqlite-rs-macros"]
+fast-blob = ["rqlite-rs-core/fast-blob", "rqlite-rs-macros/fast-blob"]
 
 [dependencies]
 rqlite-rs-macros = { version = "0.2.11", path = "../rqlite-rs-macros", optional = true }
 rqlite-rs-core = { version = "0.2.12", path = "../rqlite-rs-core" }
 reqwest = { version = "0.12.8", default-features = false }
-base64 = "0.22.1"
+base64.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

@@ -63,6 +63,7 @@ impl RqliteClientBuilder {
     }
 
     /// Adds a default query parameter to the builder.
+    /// The `blob_array` parameter is added by default if the `fast-blob` feature is not enabled. (see <https://rqlite.io/docs/api/api/#blob-data>)
     #[must_use]
     pub fn default_query_params(mut self, params: Vec<RqliteQueryParam>) -> Self {
         self.config = self.config.default_query_params(params);
@@ -562,7 +563,10 @@ mod tests {
 
         let config = client.unwrap().config;
 
+        #[cfg(feature = "fast-blob")]
         assert_eq!(config.default_query_params.unwrap().0.len(), 1);
+        #[cfg(not(feature = "fast-blob"))]
+        assert_eq!(config.default_query_params.unwrap().0.len(), 2);
     }
 
     #[test]

@@ -8,6 +8,7 @@ pub enum RqliteArgument {
     F64(f64),
     F32(f32),
     Bool(bool),
+    Blob(Vec<u8>),
     Null,
 }
 
@@ -67,6 +68,18 @@ impl RqliteArgumentRaw for String {
     }
 }
 
+impl RqliteArgumentRaw for Vec<u8> {
+    fn encode(&self) -> RqliteArgument {
+        RqliteArgument::Blob(self.to_owned())
+    }
+}
+
+impl RqliteArgumentRaw for &[u8] {
+    fn encode(&self) -> RqliteArgument {
+        RqliteArgument::Blob(self.to_vec())
+    }
+}
+
 impl<T> RqliteArgumentRaw for Option<T>
 where
     T: RqliteArgumentRaw,
@@ -118,5 +131,11 @@ mod tests {
 
         let arg = arg!(None::<i64>);
         assert_eq!(arg, RqliteArgument::Null);
+
+        let arg = arg!(vec![1, 2, 3]);
+        assert_eq!(arg, RqliteArgument::Blob(vec![1, 2, 3]));
+
+        let arg = arg!(&[1u8, 2, 3][..]);
+        assert_eq!(arg, RqliteArgument::Blob(vec![1, 2, 3]));
     }
 }

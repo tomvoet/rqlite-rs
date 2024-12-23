@@ -142,6 +142,9 @@ pub enum RqliteQueryParam {
     NoRWRandom,
     /// Version
     Ver(String),
+    /// Retrieve blobs as u8 arrays instead of base64 encoded strings
+    /// Defaults to true when the `fast-blob` feature is disabled
+    BlobArray,
 }
 
 impl RqliteQueryParam {
@@ -163,6 +166,7 @@ impl RqliteQueryParam {
             }
             RqliteQueryParam::NoRWRandom => RequestQueryParam::Bool("norwrandom".to_string()),
             RqliteQueryParam::Ver(v) => RequestQueryParam::KV("ver".to_string(), v),
+            RqliteQueryParam::BlobArray => RequestQueryParam::Bool("blob_array".to_string()),
         }
     }
 }
@@ -226,6 +230,11 @@ impl RqliteQueryParams {
         self
     }
 
+    pub fn blob_array(mut self) -> Self {
+        self.0.push(RqliteQueryParam::BlobArray);
+        self
+    }
+
     pub(crate) fn into_request_query_params(self) -> RequestQueryParams {
         let mut params = RequestQueryParams::new();
 
@@ -265,6 +274,7 @@ mod tests {
             .freshness_strict()
             .norwrandom()
             .ver("1".to_string())
+            .blob_array()
     }
 
     #[test]
@@ -272,7 +282,10 @@ mod tests {
         let params = full_query_params();
         let req_params = RequestQueryParams::from(params);
 
-        assert_eq!(req_params.0.len(), 10);
+        #[cfg(feature = "fast-blob")]
+        assert_eq!(req_params.0.len(), 11);
+        #[cfg(not(feature = "fast-blob"))]
+        assert_eq!(req_params.0.len(), 12);
     }
 
     #[test]
@@ -282,7 +295,10 @@ mod tests {
 
         let reqwest_query = req_params.into_reqwest_query();
 
-        assert_eq!(reqwest_query.len(), 10);
+        #[cfg(feature = "fast-blob")]
+        assert_eq!(reqwest_query.len(), 11);
+        #[cfg(not(feature = "fast-blob"))]
+        assert_eq!(reqwest_query.len(), 12);
     }
 
     #[test]
@@ -328,6 +344,7 @@ mod tests {
         assert!(query.contains("freshness_strict=true"));
         assert!(query.contains("norwrandom=true"));
         assert!(query.contains("ver=1"));
+        assert!(query.contains("blob_array=true"));
     }
 
     #[test]
@@ -341,7 +358,10 @@ mod tests {
 
         let req_params = req.params.unwrap();
 
-        assert_eq!(req_params.0.len(), 10);
+        #[cfg(feature = "fast-blob")]
+        assert_eq!(req_params.0.len(), 11);
+        #[cfg(not(feature = "fast-blob"))]
+        assert_eq!(req_params.0.len(), 12);
     }
 
     #[test]
