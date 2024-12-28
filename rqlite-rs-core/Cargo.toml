@@ -1,6 +1,6 @@
 [package]
 name = "rqlite-rs-core"
-version = "0.2.12"
+version = "0.3.0"
 publish = true
 description = "Core library for rqlite-rs"
 readme = "../README.md"

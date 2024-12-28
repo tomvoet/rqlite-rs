@@ -1,6 +1,6 @@
 [package]
 name = "rqlite-rs-macros"
-version = "0.2.11"
+version = "0.3.0"
 publish = true
 description = "Proc-macros for rqlite-rs"
 readme = "../README.md"
@@ -21,5 +21,5 @@ fast-blob = ["rqlite-rs-core/fast-blob"]
 
 [dependencies]
 quote = "1.0.37"
-rqlite-rs-core = { version = "0.2.12", path = "../rqlite-rs-core" }
+rqlite-rs-core = { version = "0.3.0", path = "../rqlite-rs-core" }
 syn = { version = "2.0.79", features = ["full", "parsing"] }
