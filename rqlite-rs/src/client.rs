@@ -4,15 +4,7 @@ use std::{
 };
 
 use crate::{
-    batch::BatchResult,
-    config::{self, RqliteClientConfig, RqliteClientConfigBuilder},
-    error::{ClientBuilderError, RequestError},
-    node::{Node, NodeResponse, RemoveNodeRequest},
-    query::{self, QueryArgs, RqliteQuery},
-    query_result::QueryResult,
-    request::{RequestOptions, RqliteQueryParam, RqliteQueryParams},
-    response::{RqliteResponseRaw, RqliteResult},
-    select::RqliteSelectResults,
+    batch::BatchResult, config::{self, RqliteClientConfig, RqliteClientConfigBuilder}, error::{ClientBuilderError, RequestError}, fallback::{FallbackCount, FallbackStrategy}, node::{Node, NodeResponse, RemoveNodeRequest}, query::{self, QueryArgs, RqliteQuery}, query_result::QueryResult, request::{RequestOptions, RqliteQueryParam, RqliteQueryParams}, response::{RqliteResponseRaw, RqliteResult}, select::RqliteSelectResults
 };
 use base64::{engine::general_purpose, Engine};
 use reqwest::header;
@@ -21,7 +13,7 @@ use rqlite_rs_core::Row;
 /// A client for interacting with a rqlite cluster.
 pub struct RqliteClient {
     client: reqwest::Client,
-    hosts: Arc<RwLock<VecDeque<String>>>,
+    hosts: Arc<RwLock<Vec<String>>>,
     config: RqliteClientConfig,
 }
 
@@ -29,7 +21,7 @@ pub struct RqliteClient {
 #[derive(Default)]
 pub struct RqliteClientBuilder {
     /// This uses a `HashSet` to ensure that no duplicate hosts are added.
-    hosts: HashSet<String>,
+    hosts: Vec<String>,
     /// The configration for the client.
     config: RqliteClientConfigBuilder,
     // The base64 encoded credentials used to make authorized requests to the Rqlite cluster
@@ -58,7 +50,13 @@ impl RqliteClientBuilder {
     #[must_use]
     #[allow(clippy::needless_pass_by_value)]
     pub fn known_host(mut self, host: impl ToString) -> Self {
-        self.hosts.insert(host.to_string());
+        let host_str = host.to_string();
+
+        if self.hosts.iter().any(|h| h == &host_str) {
+            eprintln!("Host {} already exists", host_str);
+        } else {
+            self.hosts.push(host_str);
+        }
         self
     }
 
@@ -67,6 +65,32 @@ impl RqliteClientBuilder {
     #[must_use]
     pub fn default_query_params(mut self, params: Vec<RqliteQueryParam>) -> Self {
         self.config = self.config.default_query_params(params);
+        self
+    }
+
+    /// Sets the fallback count for the client.
+    /// The fallback count is the number of times the client will try to switch to another host if the current host fails.
+    #[must_use]
+    pub fn fallback_count(mut self, count: FallbackCount) -> Self {
+        self.config = self.config.fallback_count(count);
+        self
+    }
+
+    /// Sets the fallback strategy for the client.
+    /// The fallback strategy is the strategy used to switch to another host if the current host fails.
+    /// The default strategy is `RoundRobin`.
+    #[must_use]
+    pub fn fallback_strategy(mut self, strategy: impl FallbackStrategy + 'static) -> Self {
+        self.config = self.config.fallback_strategy(strategy);
+        self
+    }
+
+    /// Sets the fallback persistence for the client.
+    /// If set to `true`, which is the default, the client will keep using the last host that was successful.
+    /// If set to `false`, the client will always try the first host in the list.
+    #[must_use]
+    pub fn fallback_persistence(mut self, persist: bool) -> Self {
+        self.config = self.config.fallback_persistence(persist);
         self
     }
 
@@ -90,7 +114,9 @@ impl RqliteClientBuilder {
             return Err(ClientBuilderError::NoHostsProvided);
         }
 
-        let hosts = VecDeque::from(self.hosts.into_iter().collect::<Vec<String>>());
+        let hosts = self.hosts.into_iter().collect::<Vec<String>>();
+
+        println!("hosts: {:?}", hosts);
 
         let mut headers = header::HeaderMap::new();
         headers.insert(
@@ -123,25 +149,24 @@ impl RqliteClientBuilder {
 }
 
 impl RqliteClient {
-    fn shift_host(&self) {
-        let mut hosts = self.hosts.write().unwrap();
-        hosts.rotate_left(1);
-    }
-
     async fn try_request(
         &self,
         mut options: RequestOptions,
     ) -> Result<reqwest::Response, RequestError> {
         let (mut host, host_count) = {
             let hosts = self.hosts.read().unwrap();
+            println!("hosts: {:?}", hosts);
             (hosts[0].clone(), hosts.len())
         };
+
+        let retry_count = self.config.fallback_count.count(host_count);
 
         if let Some(default_params) = &self.config.default_query_params {
             options.merge_default_query_params(default_params);
         };
 
-        for _ in 0..host_count {
+        for _ in 0..retry_count {
+            println!("Trying host: {}", host);
             let req = options.to_reqwest_request(&self.client, host.as_str(), &self.config.scheme);
 
             match req.send().await {
@@ -170,13 +195,17 @@ impl RqliteClient {
     fn handle_request_error(
         &self,
         e: &reqwest::Error,
-        host: &mut String,
+        host: &mut String, // warum wird host gepasst? wird nicht alles über self.hosts gemacht?
     ) -> Result<(), RequestError> {
         if e.is_connect() || e.is_timeout() {
             let previous_host = host.clone();
-            self.shift_host();
-            let hosts = self.hosts.read().unwrap();
-            host.clone_from(&hosts[0]);
+            let mut writable_hosts = self.hosts.write().unwrap();
+
+            let new_host = self.config.fallback_strategy.write().unwrap()
+                .fallback(&mut writable_hosts, host, self.config.fallback_persistence)
+                .ok_or(RequestError::NoAvailableHosts)?;
+
+            host.clone_from(new_host);
             println!("Connection to {} failed, trying {}", previous_host, *host);
             Ok(())
         } else {

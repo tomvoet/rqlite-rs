@@ -14,6 +14,7 @@ pub mod config;
 pub mod error;
 pub mod node;
 pub mod request;
+pub mod fallback;
 pub(crate) mod select;
 
 #[cfg(feature = "macros")]
