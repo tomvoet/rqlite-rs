@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashSet, VecDeque},
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 use crate::{
     batch::BatchResult, config::{self, RqliteClientConfig, RqliteClientConfigBuilder}, error::{ClientBuilderError, RequestError}, fallback::{FallbackCount, FallbackStrategy}, node::{Node, NodeResponse, RemoveNodeRequest}, query::{self, QueryArgs, RqliteQuery}, query_result::QueryResult, request::{RequestOptions, RqliteQueryParam, RqliteQueryParams}, response::{RqliteResponseRaw, RqliteResult}, select::RqliteSelectResults
@@ -53,7 +50,7 @@ impl RqliteClientBuilder {
         let host_str = host.to_string();
 
         if self.hosts.iter().any(|h| h == &host_str) {
-            eprintln!("Host {} already exists", host_str);
+            eprintln!("Host {host_str} already exists");
         } else {
             self.hosts.push(host_str);
         }
@@ -116,7 +113,7 @@ impl RqliteClientBuilder {
 
         let hosts = self.hosts.into_iter().collect::<Vec<String>>();
 
-        println!("hosts: {:?}", hosts);
+        println!("hosts: {hosts:?}");
 
         let mut headers = header::HeaderMap::new();
         headers.insert(
@@ -155,7 +152,7 @@ impl RqliteClient {
     ) -> Result<reqwest::Response, RequestError> {
         let (mut host, host_count) = {
             let hosts = self.hosts.read().unwrap();
-            println!("hosts: {:?}", hosts);
+            println!("hosts: {hosts:?}");
             (hosts[0].clone(), hosts.len())
         };
 
@@ -166,7 +163,7 @@ impl RqliteClient {
         };
 
         for _ in 0..retry_count {
-            println!("Trying host: {}", host);
+            println!("Trying host: {host}");
             let req = options.to_reqwest_request(&self.client, host.as_str(), &self.config.scheme);
 
             match req.send().await {

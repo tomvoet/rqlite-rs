@@ -31,14 +31,14 @@ impl FallbackStrategy for LeastFailuresFallback {
         let mut sorted_hosts = hosts.clone();
         sorted_hosts.sort_by_key(|host| failures.get(host).cloned().unwrap_or(0));
 
-        let next_host = sorted_hosts.iter().find(|&&ref host| host != current_host)?;
+        let next_host = sorted_hosts.iter().find(|&host| host != current_host)?;
 
         if persist {
             let index = hosts.iter().position(|host| host == next_host)?;
             hosts.swap(0, index);
             Some(&hosts[0])
         } else {
-            hosts.iter().find(|&&ref host| host == next_host)
+            hosts.iter().find(|&host| host == next_host)
         }
     }
 }

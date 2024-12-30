@@ -27,7 +27,7 @@ pub struct Priority {
 }
 
 impl Priority {
-    pub fn new(hosts: Vec<String>) -> Priority {
+    #[must_use] pub fn new(hosts: Vec<String>) -> Priority {
         Priority {
             hosts,
         }
@@ -38,12 +38,10 @@ impl FallbackStrategy for Priority {
     fn fallback<'a>(&mut self, hosts: &'a mut Vec<String>, current_host: &str, persist: bool) -> Option<&'a String> {
         // If hosts is empty, assume that the hosts were passed in order of priority.
         if self.hosts.is_empty() {
-            self.hosts = hosts.clone();
+            self.hosts.clone_from(hosts);
         }
 
-        let Some(index) = self.hosts.iter().position(|host| host == current_host) else {
-            return None;
-        };
+        let index = self.hosts.iter().position(|host| host == current_host)?;
 
         let next_index = (index + 1) % self.hosts.len();
         

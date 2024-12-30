@@ -1,7 +1,7 @@
 mod strategy;
 pub use strategy::*;
 
-/// FallbackCount is the number of hosts to try to fallback to if the current host fails.
+/// `FallbackCount` is the number of hosts to try to fallback to if the current host fails.
 #[derive(Default)]
 pub enum FallbackCount {
     /// Equivalent to the current number of hosts.
@@ -27,7 +27,8 @@ impl FallbackCount {
             FallbackCount::None => 0,
             FallbackCount::Count(count) => *count,
             FallbackCount::Percentage(percentage) => {
-                let count = (hosts as f64 * (*percentage as f64 / 100.0)).ceil() as usize;
+                #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation, clippy::cast_precision_loss)]
+                let count = (hosts as f64 * (f64::from(*percentage) / 100.0)).ceil() as usize;
                 if count > hosts {
                     hosts
                 } else {
