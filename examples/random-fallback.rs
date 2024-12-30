@@ -1,4 +1,7 @@
-use rqlite_rs::{fallback::{FallbackCount, Random}, RqliteClientBuilder};
+use rqlite_rs::{
+    fallback::{FallbackCount, Random},
+    RqliteClientBuilder,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

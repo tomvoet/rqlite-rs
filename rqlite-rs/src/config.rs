@@ -1,6 +1,9 @@
 use std::sync::RwLock;
 
-use crate::{fallback::{FallbackCount, FallbackStrategy}, request::{RequestQueryParams, RqliteQueryParam, RqliteQueryParams}};
+use crate::{
+    fallback::{FallbackCount, FallbackStrategy},
+    request::{RequestQueryParams, RqliteQueryParam, RqliteQueryParams},
+};
 
 #[derive(Default)]
 pub(crate) struct RqliteClientConfigBuilder {

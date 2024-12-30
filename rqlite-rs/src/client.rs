@@ -1,7 +1,16 @@
 use std::sync::{Arc, RwLock};
 
 use crate::{
-    batch::BatchResult, config::{self, RqliteClientConfig, RqliteClientConfigBuilder}, error::{ClientBuilderError, RequestError}, fallback::{FallbackCount, FallbackStrategy}, node::{Node, NodeResponse, RemoveNodeRequest}, query::{self, QueryArgs, RqliteQuery}, query_result::QueryResult, request::{RequestOptions, RqliteQueryParam, RqliteQueryParams}, response::{RqliteResponseRaw, RqliteResult}, select::RqliteSelectResults
+    batch::BatchResult,
+    config::{self, RqliteClientConfig, RqliteClientConfigBuilder},
+    error::{ClientBuilderError, RequestError},
+    fallback::{FallbackCount, FallbackStrategy},
+    node::{Node, NodeResponse, RemoveNodeRequest},
+    query::{self, QueryArgs, RqliteQuery},
+    query_result::QueryResult,
+    request::{RequestOptions, RqliteQueryParam, RqliteQueryParams},
+    response::{RqliteResponseRaw, RqliteResult},
+    select::RqliteSelectResults,
 };
 use base64::{engine::general_purpose, Engine};
 use reqwest::header;
@@ -198,7 +207,11 @@ impl RqliteClient {
             let previous_host = host.clone();
             let mut writable_hosts = self.hosts.write().unwrap();
 
-            let new_host = self.config.fallback_strategy.write().unwrap()
+            let new_host = self
+                .config
+                .fallback_strategy
+                .write()
+                .unwrap()
                 .fallback(&mut writable_hosts, host, self.config.fallback_persistence)
                 .ok_or(RequestError::NoAvailableHosts)?;
 

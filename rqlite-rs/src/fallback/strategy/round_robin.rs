@@ -13,7 +13,12 @@ impl RoundRobin {
 }
 
 impl FallbackStrategy for RoundRobin {
-    fn fallback<'a>(&mut self, hosts: &'a mut Vec<String>, current_host: &str, persist: bool) -> Option<&'a String> {
+    fn fallback<'a>(
+        &mut self,
+        hosts: &'a mut Vec<String>,
+        current_host: &str,
+        persist: bool,
+    ) -> Option<&'a String> {
         if persist {
             Self::shift_hosts(hosts);
             Some(&hosts[0])

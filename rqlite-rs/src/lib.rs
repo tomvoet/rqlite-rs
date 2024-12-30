@@ -12,9 +12,9 @@ pub use rqlite_rs_core::*;
 pub mod batch;
 pub mod config;
 pub mod error;
+pub mod fallback;
 pub mod node;
 pub mod request;
-pub mod fallback;
 pub(crate) mod select;
 
 #[cfg(feature = "macros")]

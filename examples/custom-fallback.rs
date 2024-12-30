@@ -1,6 +1,12 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
-use rqlite_rs::{fallback::{FallbackCount, FallbackStrategy}, RqliteClientBuilder};
+use rqlite_rs::{
+    fallback::{FallbackCount, FallbackStrategy},
+    RqliteClientBuilder,
+};
 
 #[derive(Default)]
 pub struct LeastFailuresFallback {
@@ -8,7 +14,12 @@ pub struct LeastFailuresFallback {
 }
 
 impl FallbackStrategy for LeastFailuresFallback {
-    fn fallback<'a>(&mut self, hosts: &'a mut Vec<String>, current_host: &str, persist: bool) -> Option<&'a String> {
+    fn fallback<'a>(
+        &mut self,
+        hosts: &'a mut Vec<String>,
+        current_host: &str,
+        persist: bool,
+    ) -> Option<&'a String> {
         let mut failures = self.failures.lock().unwrap();
 
         // Initialize the failures map if it is empty

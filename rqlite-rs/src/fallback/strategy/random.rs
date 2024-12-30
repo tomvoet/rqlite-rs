@@ -17,13 +17,15 @@ impl Default for Random {
 }
 
 impl Random {
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self {
             rng: nanorand::WyRand::new(),
         }
     }
 
-    #[must_use] pub fn new_seed(seed: u64) -> Self {
+    #[must_use]
+    pub fn new_seed(seed: u64) -> Self {
         Self {
             rng: nanorand::WyRand::new_seed(seed),
         }
@@ -31,7 +33,12 @@ impl Random {
 }
 
 impl FallbackStrategy for Random {
-    fn fallback<'a>(&mut self, hosts: &'a mut Vec<String>, _current_host: &str, persist: bool) -> Option<&'a String> {
+    fn fallback<'a>(
+        &mut self,
+        hosts: &'a mut Vec<String>,
+        _current_host: &str,
+        persist: bool,
+    ) -> Option<&'a String> {
         let index = self.rng.generate_range(0..hosts.len());
         println!("persist: {persist}");
         if persist {
