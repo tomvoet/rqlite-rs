@@ -43,3 +43,19 @@ impl FallbackCount {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_fallback_count() {
+        assert_eq!(FallbackCount::NumHosts.count(3), 3);
+        assert_eq!(FallbackCount::None.count(3), 0);
+        assert_eq!(FallbackCount::Count(2).count(3), 2);
+        assert_eq!(FallbackCount::Count(4).count(3), 4);
+        assert_eq!(FallbackCount::Percentage(50).count(3), 2);
+        assert_eq!(FallbackCount::Percentage(200).count(3), 3);
+        assert_eq!(FallbackCount::Infinite.count(3), usize::MAX);
+    }
+}
