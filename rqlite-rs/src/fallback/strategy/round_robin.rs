@@ -29,3 +29,47 @@ impl FallbackStrategy for RoundRobin {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_fallback_round_robin() {
+        let mut hosts = vec!["localhost:4001".to_string(), "localhost:4002".to_string()];
+        let mut strategy = RoundRobin;
+
+        assert_eq!(
+            strategy.fallback(&mut hosts, "localhost:4001", false),
+            Some(&"localhost:4002".to_string())
+        );
+        assert_eq!(
+            hosts,
+            vec!["localhost:4001".to_string(), "localhost:4002".to_string()]
+        );
+        assert_eq!(
+            strategy.fallback(&mut hosts, "localhost:4002", false),
+            Some(&"localhost:4001".to_string())
+        );
+        assert_eq!(
+            hosts,
+            vec!["localhost:4001".to_string(), "localhost:4002".to_string()]
+        );
+        assert_eq!(
+            strategy.fallback(&mut hosts, "localhost:4001", true),
+            Some(&"localhost:4002".to_string())
+        );
+        assert_eq!(
+            hosts,
+            vec!["localhost:4002".to_string(), "localhost:4001".to_string()]
+        );
+        assert_eq!(
+            strategy.fallback(&mut hosts, "localhost:4001", false),
+            Some(&"localhost:4002".to_string())
+        );
+        assert_eq!(
+            hosts,
+            vec!["localhost:4002".to_string(), "localhost:4001".to_string()]
+        );
+    }
+}
