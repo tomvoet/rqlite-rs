@@ -7,15 +7,15 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch: 
+  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: "0 0 * * 0"
 
-permissions: 
+permissions:
   checks: write
   contents: read
 
-jobs: 
+jobs:
   test:
     name: Unit tests - Rust ${{ matrix.rust }}
     runs-on: ubuntu-latest
@@ -32,10 +32,10 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           components: rust-src
-      
+
       - name: Run tests
         run: cargo test unit --all --all-features --no-fail-fast -- --nocapture
-  
+
   coverage:
     name: Coverage - Rust ${{ matrix.rust }}
     needs: test
@@ -52,16 +52,16 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           components: rust-src
-      
+
       - name: Setup rqlite for tests
         run: |
           docker compose -f rqlite-rs/tests/setup/docker-compose.yml up -d --wait
-    
+
       - name: Install binstall
         uses: cargo-bins/cargo-binstall@main
-    
+
       - name: Download tarpaulin
-        run: cargo binstall cargo-tarpaulin
+        run: cargo binstall cargo-tarpaulin@0.31.3
 
       - name: Run coverage # exclude macros for now since they cause issues in ci
         run: |
@@ -88,13 +88,13 @@ jobs:
 
       - name: Generate Cargo.lock
         run: cargo generate-lockfile
-      
+
       - name: Check
         run: cargo check --locked --verbose
-      
+
       - name: Check without default features
         run: cargo check --locked --verbose --no-default-features
-  
+
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
@@ -109,7 +109,7 @@ jobs:
 
       - name: Run clippy
         run: cargo clippy --tests --workspace -- -Dclippy::all -Dclippy::pedantic
-  
+
   fmt:
     name: Formatting
     runs-on: ubuntu-latest
