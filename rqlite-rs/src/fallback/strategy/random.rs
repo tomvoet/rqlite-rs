@@ -68,4 +68,36 @@ mod tests {
             .fallback(&mut hosts, "localhost:4001", true)
             .is_some());
     }
+
+    #[test]
+    fn unit_fallback_random_default() {
+        let mut hosts = vec!["localhost:4001".to_string(), "localhost:4002".to_string()];
+        let mut strategy = Random::default();
+
+        assert!(strategy
+            .fallback(&mut hosts, "localhost:4001", false)
+            .is_some());
+        assert!(strategy
+            .fallback(&mut hosts, "localhost:4002", false)
+            .is_some());
+        assert!(strategy
+            .fallback(&mut hosts, "localhost:4001", true)
+            .is_some());
+    }
+
+    #[test]
+    fn unit_fallback_random_seed() {
+        let mut hosts = vec!["localhost:4001".to_string(), "localhost:4002".to_string()];
+        let mut strategy = Random::new_seed(42);
+
+        assert!(strategy
+            .fallback(&mut hosts, "localhost:4001", false)
+            .is_some());
+        assert!(strategy
+            .fallback(&mut hosts, "localhost:4002", false)
+            .is_some());
+        assert!(strategy
+            .fallback(&mut hosts, "localhost:4001", true)
+            .is_some());
+    }
 }
