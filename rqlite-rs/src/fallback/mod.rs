@@ -10,7 +10,7 @@ pub enum FallbackCount {
     /// None means no fallback.
     None,
     /// A specific number of hosts to fallback to.
-    /// If the number is greater than the number of hosts, it will fallback to all hosts.
+    /// If the number is greater than the total number of hosts, it can lead to hosts being tried multiple times.
     Count(usize),
     /// A percentage of the total number of hosts to fallback to.
     /// If the percentage is greater than 100, it will fallback to all hosts.
