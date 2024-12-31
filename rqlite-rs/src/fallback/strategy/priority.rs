@@ -45,13 +45,12 @@ impl FallbackStrategy for Priority {
             self.hosts.clone_from(hosts);
         }
 
-        let index = self
-            .hosts
-            .iter()
-            .position(|host| host == current_host)
-            .unwrap_or(0);
+        let index = self.hosts.iter().position(|host| host == current_host);
 
-        let next_index = (index + 1) % self.hosts.len();
+        let next_index = match index {
+            Some(i) => (i + 1) % self.hosts.len(),
+            None => 0,
+        };
 
         if persist {
             hosts.swap(0, next_index);
@@ -120,6 +119,17 @@ mod tests {
         assert_eq!(
             strategy.fallback(&mut hosts, "localhost:4001", true),
             Some(&"localhost:4002".to_string())
+        );
+    }
+
+    #[test]
+    fn unit_fallback_non_existing_host() {
+        let mut hosts = vec!["localhost:4001".to_string(), "localhost:4002".to_string()];
+        let mut strategy = Priority::new(vec![]);
+
+        assert_eq!(
+            strategy.fallback(&mut hosts, "localhost:4003", false),
+            Some(&"localhost:4001".to_string())
         );
     }
 }
