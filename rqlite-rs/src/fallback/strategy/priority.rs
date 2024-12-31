@@ -45,7 +45,11 @@ impl FallbackStrategy for Priority {
             self.hosts.clone_from(hosts);
         }
 
-        let index = self.hosts.iter().position(|host| host == current_host)?;
+        let index = self
+            .hosts
+            .iter()
+            .position(|host| host == current_host)
+            .unwrap_or(0);
 
         let next_index = (index + 1) % self.hosts.len();
 
