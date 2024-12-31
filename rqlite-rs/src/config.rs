@@ -124,4 +124,44 @@ mod tests {
         assert_eq!(Scheme::Http.to_string(), "http");
         assert_eq!(Scheme::Https.to_string(), "https");
     }
+
+    // Fallback related tests
+    #[test]
+    fn unit_config_fallback_strategy() {
+        let config = RqliteClientConfigBuilder::default()
+            .fallback_strategy(crate::fallback::Priority::new(vec![
+                "localhost:4005".to_string(),
+                "localhost:4003".to_string(),
+                "localhost:4001".to_string(),
+            ]))
+            .build();
+
+        let mut fallback_strategy = config.fallback_strategy.write().unwrap();
+
+        assert!(fallback_strategy
+            .fallback(
+                &mut vec!["localhost:4001".to_string(), "localhost:4002".to_string()],
+                "localhost:4001",
+                false
+            )
+            .is_some());
+    }
+
+    #[test]
+    fn unit_config_fallback_count() {
+        let config = RqliteClientConfigBuilder::default()
+            .fallback_count(FallbackCount::Infinite)
+            .build();
+
+        assert!(matches!(config.fallback_count, FallbackCount::Infinite));
+    }
+
+    #[test]
+    fn unit_config_fallback_persistence() {
+        let config = RqliteClientConfigBuilder::default()
+            .fallback_persistence(true)
+            .build();
+
+        assert!(config.fallback_persistence);
+    }
 }
