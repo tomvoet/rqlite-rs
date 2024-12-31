@@ -1,4 +1,3 @@
-#![cfg(feature = "random-fallback")]
 use nanorand::Rng;
 
 use super::FallbackStrategy;
@@ -47,5 +46,26 @@ impl FallbackStrategy for Random {
         } else {
             Some(&hosts[index])
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_fallback_random() {
+        let mut hosts = vec!["localhost:4001".to_string(), "localhost:4002".to_string()];
+        let mut strategy = Random::new();
+
+        assert!(strategy
+            .fallback(&mut hosts, "localhost:4001", false)
+            .is_some());
+        assert!(strategy
+            .fallback(&mut hosts, "localhost:4002", false)
+            .is_some());
+        assert!(strategy
+            .fallback(&mut hosts, "localhost:4001", true)
+            .is_some());
     }
 }
