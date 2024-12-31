@@ -572,6 +572,16 @@ mod tests {
     }
 
     #[test]
+    fn unit_rqlite_client_builder_duplicate_host() {
+        let client = RqliteClientBuilder::new()
+            .known_host("http://localhost:4001")
+            .known_host("http://localhost:4001")
+            .build();
+
+        assert!(client.is_ok());
+    }
+
+    #[test]
     fn unit_rqlite_client_builder_https() {
         let client = RqliteClientBuilder::new()
             .known_host("http://localhost:4001")
@@ -617,5 +627,51 @@ mod tests {
         let config = client.unwrap().config;
 
         assert!(matches!(config.scheme, config::Scheme::Http));
+    }
+
+    // Fallback related tests
+    #[test]
+    fn unit_rqlite_client_builder_fallback_strategy() {
+        let client = RqliteClientBuilder::new()
+            .known_host("http://localhost:4001")
+            .fallback_strategy(crate::fallback::Priority::new(vec![
+                "localhost:4005".to_string(),
+                "localhost:4003".to_string(),
+                "localhost:4001".to_string(),
+            ]))
+            .build()
+            .unwrap();
+
+        let mut fallback_strategy = client.config.fallback_strategy.write().unwrap();
+
+        assert!(fallback_strategy
+            .fallback(
+                &mut vec!["localhost:4001".to_string(), "localhost:4002".to_string()],
+                "localhost:4001",
+                false
+            )
+            .is_some());
+    }
+
+    #[test]
+    fn unit_rqllite_client_builder_fallback_count() {
+        let client = RqliteClientBuilder::new()
+            .known_host("http://localhost:4001")
+            .fallback_count(FallbackCount::Count(3))
+            .build()
+            .unwrap();
+
+        assert_eq!(client.config.fallback_count.count(4), 3);
+    }
+
+    #[test]
+    fn unit_rqllite_client_builder_fallback_persistence() {
+        let client = RqliteClientBuilder::new()
+            .known_host("http://localhost:4001")
+            .fallback_persistence(false)
+            .build()
+            .unwrap();
+
+        assert!(!client.config.fallback_persistence);
     }
 }
