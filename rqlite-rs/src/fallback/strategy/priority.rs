@@ -57,3 +57,38 @@ impl FallbackStrategy for Priority {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unit_fallback_priority() {
+        let mut hosts = vec!["localhost:4001".to_string(), "localhost:4002".to_string()];
+        let mut strategy = Priority::new(vec![
+            "localhost:4001".to_string(),
+            "localhost:4002".to_string(),
+        ]);
+
+        assert_eq!(
+            strategy.fallback(&mut hosts, "localhost:4001", false),
+            Some(&"localhost:4002".to_string())
+        );
+        assert_eq!(
+            hosts,
+            vec!["localhost:4001".to_string(), "localhost:4002".to_string()]
+        );
+        assert_eq!(
+            strategy.fallback(&mut hosts, "localhost:4002", false),
+            Some(&"localhost:4001".to_string())
+        );
+        assert_eq!(
+            hosts,
+            vec!["localhost:4001".to_string(), "localhost:4002".to_string()]
+        );
+        assert_eq!(
+            strategy.fallback(&mut hosts, "localhost:4001", true),
+            Some(&"localhost:4002".to_string())
+        );
+    }
+}
