@@ -5,7 +5,7 @@ publish = false
 version = "0.0.0"
 
 [dev-dependencies]
-rqlite-rs = { path = "../rqlite-rs", version = "0.5.0", features = [] }
+rqlite-rs = { path = "../rqlite-rs", features = ["random-fallback"] }
 tokio = { version = "1.40.0", features = ["rt-multi-thread", "macros"] }
 anyhow = "1.0.90"
 
@@ -48,4 +48,14 @@ doc-scrape-examples = true
 [[example]]
 name = "blob"
 path = "blob.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "random-fallback"
+path = "random-fallback.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "custom-fallback"
+path = "custom-fallback.rs"
 doc-scrape-examples = true
