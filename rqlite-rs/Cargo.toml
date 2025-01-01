@@ -35,3 +35,6 @@ thiserror.workspace = true
 
 [dev-dependencies]
 tokio = "1.40.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }
