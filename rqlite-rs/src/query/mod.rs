@@ -197,6 +197,7 @@ macro_rules! query {
             let Ok(query) = ($crate::query!($query)) else {
                 // This is not unreachable.
                 #[allow(unreachable_code)]
+                #[cfg(not(tarpaulin_include))]
                 break 'blk Err($crate::error::QueryBuilderError::InvalidQuery($query.to_string()));
             };
 

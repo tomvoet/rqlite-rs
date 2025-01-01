@@ -111,6 +111,9 @@ mod tests {
         let arg = arg!(1i64);
         assert_eq!(arg, RqliteArgument::I64(1));
 
+        let arg = arg!(1usize);
+        assert_eq!(arg, RqliteArgument::I64(1));
+
         let arg = arg!(1.0);
         assert_eq!(arg, RqliteArgument::F64(1.0));
 
