@@ -64,7 +64,8 @@ async fn main() -> anyhow::Result<()> {
 
 ## Resilience
 
-The client supports automatic failover, attempting to connect to the next known node if a connection error or timeout occurs, ensuring high availability.
+**rqlite-rs** supports automatic failover to a different node in the cluster. This can be done using one of the provided fallback strategies (e.g., `Random`, `RoundRobin`, `Priority`).
+Furthermore you can also implement your own fallback strategy by implementing the `FallbackStrategy` trait. An example of this can be found in the [custom_fallback](https://github.com/tomvoet/rqlite-rs/blob/main/examples/custom-fallback.rs) example.
 
 ## Documentation
 
