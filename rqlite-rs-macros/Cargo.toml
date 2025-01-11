@@ -20,6 +20,6 @@ proc-macro = true
 fast-blob = ["rqlite-rs-core/fast-blob"]
 
 [dependencies]
-quote = "1.0.37"
-rqlite-rs-core = { version = "0.3.0", path = "../rqlite-rs-core" }
-syn = { version = "2.0.79", features = ["full", "parsing"] }
+quote = "1"
+rqlite-rs-core = { version = "0.3", path = "../rqlite-rs-core" }
+syn = { version = "2", features = ["full", "parsing"] }
