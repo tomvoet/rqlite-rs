@@ -1,6 +1,6 @@
 [package]
 name = "rqlite-rs"
-version = "0.5.0"
+version = "0.6.0"
 publish = true
 description = "Async rqlite client for Rust"
 readme = "../README.md"
@@ -24,8 +24,8 @@ fast-blob = ["rqlite-rs-core/fast-blob", "rqlite-rs-macros/fast-blob"]
 random-fallback = ["nanorand"]
 
 [dependencies]
-rqlite-rs-macros = { version = "0.3.0", path = "../rqlite-rs-macros", optional = true }
-rqlite-rs-core = { version = "0.3.0", path = "../rqlite-rs-core" }
+rqlite-rs-macros = { version = "0.3.1", path = "../rqlite-rs-macros", optional = true }
+rqlite-rs-core = { version = "0.3.1", path = "../rqlite-rs-core" }
 reqwest = { version = "0.12", default-features = false }
 nanorand = { version = "0.7", optional = true }
 base64.workspace = true
