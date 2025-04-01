@@ -1,22 +1,20 @@
-//// Contains integration tests with other libraries and frameworks
+//! Contains integration tests with other libraries and frameworks
+use std::sync::Arc;
 
 use rqlite_rs::RqliteClient;
+
+use axum::{extract::State, http::StatusCode, routing::get, Router};
+use axum_test::TestServer;
 
 mod common;
 
 #[tokio::test]
 async fn integration_with_axum() {
-    use std::sync::Arc;
-
-    use axum::{extract::State, http::StatusCode, routing::get, Router};
-    use axum_test::TestServer;
-
     #[derive(Clone)]
     struct AppState {
         rqlite_client: Arc<RqliteClient>,
     }
 
-    #[axum::debug_handler]
     async fn example_endpoint(State(AppState { rqlite_client }): State<AppState>) -> StatusCode {
         match rqlite_client.nodes().await {
             Ok(_) => StatusCode::OK,
