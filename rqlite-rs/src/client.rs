@@ -122,8 +122,6 @@ impl RqliteClientBuilder {
 
         let hosts = self.hosts.into_iter().collect::<Vec<String>>();
 
-        println!("hosts: {hosts:?}");
-
         let mut headers = header::HeaderMap::new();
         headers.insert(
             header::CONTENT_TYPE,
@@ -161,7 +159,6 @@ impl RqliteClient {
     ) -> Result<reqwest::Response, RequestError> {
         let (mut host, host_count) = {
             let hosts = self.hosts.read().unwrap();
-            println!("hosts: {hosts:?}");
             (hosts[0].clone(), hosts.len())
         };
 
