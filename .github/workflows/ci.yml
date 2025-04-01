@@ -75,15 +75,15 @@ jobs:
           fail_ci_if_error: true
 
   msrv:
-    name: MSRV - Rust 1.71.1
+    name: MSRV - Rust 1.80.1
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install 1.71.1
+      - name: Install 1.80.1
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.71.1
+          toolchain: 1.80.1
           components: rust-src
 
       - name: Generate Cargo.lock
