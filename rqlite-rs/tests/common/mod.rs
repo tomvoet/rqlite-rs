@@ -8,6 +8,7 @@ pub fn get_client() -> RqliteClient {
         .unwrap()
 }
 
+#[allow(dead_code)]
 pub fn get_client_with_default_query_params() -> RqliteClient {
     RqliteClientBuilder::default()
         .known_host("localhost:4001")
@@ -17,6 +18,7 @@ pub fn get_client_with_default_query_params() -> RqliteClient {
         .unwrap()
 }
 
+#[allow(dead_code)]
 pub fn get_client_with_invalid_host() -> RqliteClient {
     RqliteClientBuilder::default()
         .known_host("localhost:4042")
@@ -25,6 +27,7 @@ pub fn get_client_with_invalid_host() -> RqliteClient {
         .unwrap()
 }
 
+#[allow(dead_code)]
 pub async fn get_client_and_reset_db() -> RqliteClient {
     let client = get_client();
 

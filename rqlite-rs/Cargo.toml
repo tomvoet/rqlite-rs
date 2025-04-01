@@ -35,3 +35,5 @@ thiserror.workspace = true
 
 [dev-dependencies]
 tokio = "1"
+axum = { version = "0.8.1", features = ["macros"] }
+axum-test = "17.3.0"
