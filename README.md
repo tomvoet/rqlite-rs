@@ -6,7 +6,7 @@
 [![Documentation](https://docs.rs/rqlite-rs/badge.svg)](https://docs.rs/rqlite-rs)
 [![License](https://img.shields.io/crates/l/rqlite-rs.svg)](LICENSE)
 [![Crates.io](https://img.shields.io/crates/d/rqlite-rs.svg)](https://crates.io/crates/rqlite-rs)
-![Rust](https://img.shields.io/badge/rust-1.80.1%2B-blue.svg)
+![Rust](https://img.shields.io/badge/rust-1.81.0%2B-blue.svg)
 
 **rqlite-rs** is a Rust client for [rqlite](https://rqlite.io/), the distributed relational database built on SQLite, providing an async interface for seamless integration with Rust's async ecosystems. Utilizing [reqwest](https://crates.io/crates/reqwest) for efficient connection management, it offers a Rustic, high-level API for easy and efficient interaction with rqlite clusters.
 

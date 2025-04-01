@@ -9,7 +9,7 @@ edition = "2021"
 keywords = ["rqlite", "database", "async"]
 categories = ["database", "asynchronous"]
 repository = "https://github.com/tomvoet/rqlite-rs"
-rust-version = "1.80.1"
+rust-version = "1.81.0"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
