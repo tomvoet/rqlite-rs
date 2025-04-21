@@ -25,7 +25,7 @@ fn is_vec_type(type_path: &syn::TypePath) -> bool {
         .path
         .segments
         .last()
-        .map_or(false, |seg| seg.ident == "Vec")
+        .is_some_and(|seg| seg.ident == "Vec")
 }
 
 fn has_u8_generic_arg(type_path: &syn::TypePath) -> bool {
@@ -34,13 +34,13 @@ fn has_u8_generic_arg(type_path: &syn::TypePath) -> bool {
     };
 
     match &last_segment.arguments {
-        syn::PathArguments::AngleBracketed(args) => args.args.first().map_or(false, |arg| {
+        syn::PathArguments::AngleBracketed(args) => args.args.first().is_some_and(|arg| {
             if let syn::GenericArgument::Type(Type::Path(inner_path)) = arg {
                 inner_path
                     .path
                     .segments
                     .last()
-                    .map_or(false, |seg| seg.ident == "u8")
+                    .is_some_and(|seg| seg.ident == "u8")
             } else {
                 false
             }

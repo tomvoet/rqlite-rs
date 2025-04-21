@@ -9,7 +9,7 @@ pub use random::Random;
 
 /// `FallbackStrategy` is the trait that defines the strategy to use when a host fails.
 /// The default strategy is `RoundRobin`.
-pub trait FallbackStrategy {
+pub trait FallbackStrategy: Send + Sync + 'static {
     /// fallback returns the next host to try and can modify the hosts list if needed.
     fn fallback<'a>(
         &mut self,

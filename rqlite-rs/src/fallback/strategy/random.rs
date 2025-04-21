@@ -39,7 +39,6 @@ impl FallbackStrategy for Random {
         persist: bool,
     ) -> Option<&'a String> {
         let index = self.rng.generate_range(0..hosts.len());
-        println!("persist: {persist}");
         if persist {
             hosts.swap(0, index);
             Some(&hosts[0])
