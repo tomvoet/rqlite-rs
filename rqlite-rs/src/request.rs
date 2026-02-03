@@ -13,7 +13,7 @@ pub(crate) struct RequestOptions {
 
 impl Default for RequestOptions {
     fn default() -> Self {
-        RequestOptions {
+        Self {
             method: reqwest::Method::POST,
             endpoint: "db/request".to_string(),
             body: None,
@@ -63,16 +63,16 @@ pub(crate) enum RequestQueryParam {
 impl RequestQueryParam {
     fn into_reqwest_query(self) -> (String, String) {
         match self {
-            RequestQueryParam::Bool(k) => (k, "true".to_string()),
-            RequestQueryParam::KV(k, v) => (k, v),
+            Self::Bool(k) => (k, "true".to_string()),
+            Self::KV(k, v) => (k, v),
         }
     }
 
-    fn is_same_key(&self, other: &RequestQueryParam) -> bool {
+    fn is_same_key(&self, other: &Self) -> bool {
         match (self, other) {
             (
-                RequestQueryParam::Bool(k1) | RequestQueryParam::KV(k1, _),
-                RequestQueryParam::Bool(k2) | RequestQueryParam::KV(k2, _),
+                Self::Bool(k1) | Self::KV(k1, _),
+                Self::Bool(k2) | Self::KV(k2, _),
             ) => k1 == k2,
         }
     }
@@ -83,7 +83,7 @@ pub(crate) struct RequestQueryParams(pub(super) Vec<RequestQueryParam>);
 
 impl RequestQueryParams {
     pub(crate) fn new() -> Self {
-        RequestQueryParams::default()
+        Self::default()
     }
 
     pub(crate) fn into_reqwest_query(self) -> Vec<(String, String)> {
@@ -93,7 +93,7 @@ impl RequestQueryParams {
             .collect()
     }
 
-    pub(crate) fn merge(&mut self, other: RequestQueryParams) {
+    pub(crate) fn merge(&mut self, other: Self) {
         //self.0.extend(other.0.clone());#
         //Deduplication
         for p in other.0 {
@@ -114,9 +114,9 @@ pub enum RqliteFreshnessLevel {
 impl Display for RqliteFreshnessLevel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RqliteFreshnessLevel::None => write!(f, "none"),
-            RqliteFreshnessLevel::Weak => write!(f, "weak"),
-            RqliteFreshnessLevel::Strong => write!(f, "strong"),
+            Self::None => write!(f, "none"),
+            Self::Weak => write!(f, "weak"),
+            Self::Strong => write!(f, "strong"),
         }
     }
 }
@@ -150,23 +150,23 @@ pub enum RqliteQueryParam {
 impl RqliteQueryParam {
     fn into_request_query_param(self) -> RequestQueryParam {
         match self {
-            RqliteQueryParam::Pretty => RequestQueryParam::Bool("pretty".to_string()),
-            RqliteQueryParam::Timings => RequestQueryParam::Bool("timings".to_string()),
-            RqliteQueryParam::Transaction => RequestQueryParam::Bool("transaction".to_string()),
-            RqliteQueryParam::Queue => RequestQueryParam::Bool("queue".to_string()),
-            RqliteQueryParam::Timeout(t) => {
+            Self::Pretty => RequestQueryParam::Bool("pretty".to_string()),
+            Self::Timings => RequestQueryParam::Bool("timings".to_string()),
+            Self::Transaction => RequestQueryParam::Bool("transaction".to_string()),
+            Self::Queue => RequestQueryParam::Bool("queue".to_string()),
+            Self::Timeout(t) => {
                 RequestQueryParam::KV("timeout".to_string(), format!("{t}s"))
             }
-            RqliteQueryParam::Level(l) => RequestQueryParam::KV("level".to_string(), l.to_string()),
-            RqliteQueryParam::Freshness(f) => {
+            Self::Level(l) => RequestQueryParam::KV("level".to_string(), l.to_string()),
+            Self::Freshness(f) => {
                 RequestQueryParam::KV("freshness".to_string(), format!("{f}s"))
             }
-            RqliteQueryParam::FreshnessStrict => {
+            Self::FreshnessStrict => {
                 RequestQueryParam::Bool("freshness_strict".to_string())
             }
-            RqliteQueryParam::NoRWRandom => RequestQueryParam::Bool("norwrandom".to_string()),
-            RqliteQueryParam::Ver(v) => RequestQueryParam::KV("ver".to_string(), v),
-            RqliteQueryParam::BlobArray => RequestQueryParam::Bool("blob_array".to_string()),
+            Self::NoRWRandom => RequestQueryParam::Bool("norwrandom".to_string()),
+            Self::Ver(v) => RequestQueryParam::KV("ver".to_string(), v),
+            Self::BlobArray => RequestQueryParam::Bool("blob_array".to_string()),
         }
     }
 }
@@ -176,8 +176,8 @@ pub(crate) struct RqliteQueryParams(Vec<RqliteQueryParam>);
 
 #[allow(dead_code)]
 impl RqliteQueryParams {
-    pub fn new() -> Self {
-        RqliteQueryParams(Vec::new())
+    pub const fn new() -> Self {
+        Self(Vec::new())
     }
 
     pub fn pretty(mut self) -> Self {
@@ -248,7 +248,7 @@ impl RqliteQueryParams {
 
 impl From<Vec<RqliteQueryParam>> for RqliteQueryParams {
     fn from(params: Vec<RqliteQueryParam>) -> Self {
-        RqliteQueryParams(params)
+        Self(params)
     }
 }
 

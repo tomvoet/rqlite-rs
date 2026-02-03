@@ -7,8 +7,8 @@ pub struct Column {
 
 impl Column {
     #[must_use]
-    pub fn new(name: String, ordinal: usize, type_data: String) -> Column {
-        Column {
+    pub const fn new(name: String, ordinal: usize, type_data: String) -> Self {
+        Self {
             name,
             ordinal,
             type_data,
@@ -21,7 +21,7 @@ impl Column {
     }
 
     #[must_use]
-    pub fn ordinal(&self) -> usize {
+    pub const fn ordinal(&self) -> usize {
         self.ordinal
     }
 

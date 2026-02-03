@@ -64,7 +64,7 @@ impl RqliteArgumentRaw for &str {
 
 impl RqliteArgumentRaw for String {
     fn encode(&self) -> RqliteArgument {
-        RqliteArgument::String(self.to_string())
+        RqliteArgument::String(self.clone())
     }
 }
 
@@ -85,10 +85,8 @@ where
     T: RqliteArgumentRaw,
 {
     fn encode(&self) -> RqliteArgument {
-        match self {
-            Some(v) => v.encode(),
-            None => RqliteArgument::Null,
-        }
+        self.as_ref()
+            .map_or(RqliteArgument::Null, RqliteArgumentRaw::encode)
     }
 }
 

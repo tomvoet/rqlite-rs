@@ -1,6 +1,6 @@
 use syn::Type;
 
-pub(crate) enum FieldType {
+pub enum FieldType {
     Option,
     Blob,
     Normal,

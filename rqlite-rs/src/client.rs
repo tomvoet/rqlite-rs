@@ -38,7 +38,7 @@ impl RqliteClientBuilder {
     /// Creates a new [`RqliteClientBuilder`].
     #[must_use]
     pub fn new() -> Self {
-        RqliteClientBuilder::default()
+        Self::default()
     }
 
     /// Adds basic auth credentials
@@ -140,7 +140,7 @@ impl RqliteClientBuilder {
             .timeout(std::time::Duration::from_secs(5))
             .default_headers(headers);
 
-        if let Some(config::Scheme::Https) = self.config.scheme {
+        if matches!(self.config.scheme, Some(config::Scheme::Https)) {
             client = client.https_only(true);
         }
 
@@ -166,7 +166,7 @@ impl RqliteClient {
 
         if let Some(default_params) = &self.config.default_query_params {
             options.merge_default_query_params(default_params);
-        };
+        }
 
         for _ in 0..retry_count {
             println!("Trying host: {host}");
@@ -455,17 +455,13 @@ impl RqliteClient {
     /// Checks if the rqlite cluster is ready.
     /// Returns `true` if the cluster is ready, otherwise `false`.
     pub async fn ready(&self) -> bool {
-        match self
-            .try_request(RequestOptions {
-                endpoint: "readyz".to_string(),
-                method: reqwest::Method::GET,
-                ..Default::default()
-            })
-            .await
-        {
-            Ok(res) => res.status() == reqwest::StatusCode::OK,
-            Err(_) => false,
-        }
+        self.try_request(RequestOptions {
+            endpoint: "readyz".to_string(),
+            method: reqwest::Method::GET,
+            ..Default::default()
+        })
+        .await
+        .is_ok_and(|res| res.status() == reqwest::StatusCode::OK)
     }
 
     /// Retrieves the nodes in the rqlite cluster.

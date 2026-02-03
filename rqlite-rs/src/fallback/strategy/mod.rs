@@ -20,7 +20,7 @@ pub trait FallbackStrategy: Send + Sync + 'static {
 }
 
 impl Default for Box<dyn FallbackStrategy> {
-    fn default() -> Box<dyn FallbackStrategy> {
+    fn default() -> Self {
         Box::new(round_robin::RoundRobin)
     }
 }
