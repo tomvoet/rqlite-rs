@@ -40,7 +40,11 @@ fn integration_derive_from_row_named() {
 #[test]
 fn integration_derive_from_row_unnamed() {
     #[derive(FromRow)]
-    struct Test(i32, String, #[expect(dead_code, reason = "field only used for FromRow derive test")] Option<String>);
+    struct Test(
+        i32,
+        String,
+        #[expect(dead_code, reason = "field only used for FromRow derive test")] Option<String>,
+    );
 
     let columns = vec![
         Column::new("id".to_string(), 0, "integer".to_string()),
