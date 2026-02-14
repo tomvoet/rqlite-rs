@@ -1,6 +1,7 @@
 use super::FallbackStrategy;
 
 /// A priority strategy for fallback.
+///
 /// This strategy will try the next host in the list.
 /// The list can be passed to the `Priority::new` function.
 /// If no list is passed, the hosts will be used in the order they were passed.
@@ -28,8 +29,8 @@ pub struct Priority {
 
 impl Priority {
     #[must_use]
-    pub fn new(hosts: Vec<String>) -> Priority {
-        Priority { hosts }
+    pub const fn new(hosts: Vec<String>) -> Self {
+        Self { hosts }
     }
 }
 
@@ -54,9 +55,9 @@ impl FallbackStrategy for Priority {
 
         if persist {
             hosts.swap(0, next_index);
-            Some(&hosts[0])
+            hosts.first()
         } else {
-            Some(&hosts[next_index])
+            hosts.get(next_index)
         }
     }
 }

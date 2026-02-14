@@ -1,6 +1,6 @@
 use syn::Type;
 
-pub(crate) enum FieldType {
+pub enum FieldType {
     Option,
     Blob,
     Normal,
@@ -8,7 +8,12 @@ pub(crate) enum FieldType {
 
 impl FieldType {
     pub(crate) fn from_type_path(type_path: &syn::TypePath) -> Self {
-        if type_path.path.segments.last().unwrap().ident == "Option" {
+        if type_path
+            .path
+            .segments
+            .last()
+            .is_some_and(|seg| seg.ident == "Option")
+        {
             return Self::Option;
         }
 

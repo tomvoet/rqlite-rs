@@ -1,3 +1,11 @@
+//! Test helper functions for integration tests
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    unused,
+    reason = "test code - panics are acceptable"
+)]
+
 use rqlite_rs::{config::Scheme, request::RqliteQueryParam, RqliteClient, RqliteClientBuilder};
 
 pub fn get_client() -> RqliteClient {
@@ -8,7 +16,6 @@ pub fn get_client() -> RqliteClient {
         .unwrap()
 }
 
-#[allow(dead_code)]
 pub fn get_client_with_default_query_params() -> RqliteClient {
     RqliteClientBuilder::default()
         .known_host("localhost:4001")
@@ -18,7 +25,6 @@ pub fn get_client_with_default_query_params() -> RqliteClient {
         .unwrap()
 }
 
-#[allow(dead_code)]
 pub fn get_client_with_invalid_host() -> RqliteClient {
     RqliteClientBuilder::default()
         .known_host("localhost:4042")
@@ -27,7 +33,6 @@ pub fn get_client_with_invalid_host() -> RqliteClient {
         .unwrap()
 }
 
-#[allow(dead_code)]
 pub async fn get_client_and_reset_db() -> RqliteClient {
     let client = get_client();
 

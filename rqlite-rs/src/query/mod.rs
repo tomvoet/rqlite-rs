@@ -84,7 +84,7 @@ impl From<RqliteQuery> for QueryArgs {
 
         args.push(components);
 
-        QueryArgs(args)
+        Self(args)
     }
 }
 
@@ -106,7 +106,7 @@ impl From<Vec<RqliteQuery>> for QueryArgs {
             args.push(components);
         }
 
-        QueryArgs(args)
+        Self(args)
     }
 }
 
@@ -148,15 +148,15 @@ impl Operation {
     ///
     /// # Errors
     /// Returns [`QueryBuilderError::InvalidOperation`] if the query string does not start with a valid operation keyword.
-    pub fn from_query_string(query: &str) -> Result<Operation, QueryBuilderError> {
+    pub fn from_query_string(query: &str) -> Result<Self, QueryBuilderError> {
         match query.to_lowercase() {
-            q if q.starts_with("create") => Ok(Operation::Create),
-            q if q.starts_with("select") => Ok(Operation::Select),
-            q if q.starts_with("update") => Ok(Operation::Update),
-            q if q.starts_with("delete") => Ok(Operation::Delete),
-            q if q.starts_with("insert") => Ok(Operation::Insert),
-            q if q.starts_with("pragma") => Ok(Operation::Pragma),
-            q if q.starts_with("drop") => Ok(Operation::Drop),
+            q if q.starts_with("create") => Ok(Self::Create),
+            q if q.starts_with("select") => Ok(Self::Select),
+            q if q.starts_with("update") => Ok(Self::Update),
+            q if q.starts_with("delete") => Ok(Self::Delete),
+            q if q.starts_with("insert") => Ok(Self::Insert),
+            q if q.starts_with("pragma") => Ok(Self::Pragma),
+            q if q.starts_with("drop") => Ok(Self::Drop),
             _ => Err(QueryBuilderError::InvalidOperation(query.to_string())),
         }
     }
@@ -195,8 +195,6 @@ macro_rules! query {
     ( $query:expr, $( $args:expr ),* ) => {{
         'blk: {
             let Ok(query) = ($crate::query!($query)) else {
-                // This is not unreachable.
-                #[allow(unreachable_code)]
                 break 'blk Err($crate::error::QueryBuilderError::InvalidQuery($query.to_string()));
             };
 

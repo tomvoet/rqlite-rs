@@ -19,10 +19,9 @@ macro_rules! impl_from_row_for_tuple {
                 let columns = row.columns().len();
                 // weird, hacky way to calculate the expected number of columns
                 // can't overflow, because the number of columns is always 0 < n < 17
-                #[allow(arithmetic_overflow)]
                 let expected: i32 = 0 $(+ $idx - ($idx - 1))+;
 
-                #[allow(clippy::cast_sign_loss)]
+                #[expect(clippy::cast_sign_loss, reason = "number of columns cannot be negative")]
                 let expected = expected as usize;
 
                 if columns != expected {

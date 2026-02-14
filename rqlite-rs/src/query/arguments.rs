@@ -20,7 +20,7 @@ pub trait RqliteArgumentRaw {
 
 impl RqliteArgumentRaw for i32 {
     fn encode(&self) -> RqliteArgument {
-        #[allow(clippy::cast_lossless)]
+        #[expect(clippy::cast_lossless, reason = "i32 to i64 is always lossless")]
         RqliteArgument::I64(*self as i64)
     }
 }
@@ -33,7 +33,10 @@ impl RqliteArgumentRaw for i64 {
 
 impl RqliteArgumentRaw for usize {
     fn encode(&self) -> RqliteArgument {
-        #[allow(clippy::cast_possible_wrap)]
+        #[expect(
+            clippy::cast_possible_wrap,
+            reason = "usize to i64 may wrap but is acceptable for query arguments"
+        )]
         RqliteArgument::I64(*self as i64)
     }
 }
@@ -64,7 +67,7 @@ impl RqliteArgumentRaw for &str {
 
 impl RqliteArgumentRaw for String {
     fn encode(&self) -> RqliteArgument {
-        RqliteArgument::String(self.to_string())
+        RqliteArgument::String(self.clone())
     }
 }
 
@@ -85,10 +88,8 @@ where
     T: RqliteArgumentRaw,
 {
     fn encode(&self) -> RqliteArgument {
-        match self {
-            Some(v) => v.encode(),
-            None => RqliteArgument::Null,
-        }
+        self.as_ref()
+            .map_or(RqliteArgument::Null, RqliteArgumentRaw::encode)
     }
 }
 

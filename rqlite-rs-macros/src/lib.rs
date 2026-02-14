@@ -18,7 +18,12 @@ pub fn derive_from_row(input: TokenStream) -> TokenStream {
     if let syn::Data::Struct(data) = &input.data {
         if let syn::Fields::Named(fields) = &data.fields {
             let field_vals = fields.named.iter().map(|field| {
-                let field_name = field.ident.as_ref().unwrap();
+                let Some(field_name) = field.ident.as_ref() else {
+                    return syn::Error::new_spanned(
+                        field,
+                        "Expected named field"
+                    ).to_compile_error();
+                };
                 let field_name_string = field_name.to_string();
 
                 if let Type::Path(type_path) = &field.ty {

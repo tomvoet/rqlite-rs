@@ -38,7 +38,7 @@ impl RqliteClientBuilder {
     /// Creates a new [`RqliteClientBuilder`].
     #[must_use]
     pub fn new() -> Self {
-        RqliteClientBuilder::default()
+        Self::default()
     }
 
     /// Adds basic auth credentials
@@ -54,7 +54,10 @@ impl RqliteClientBuilder {
     /// The host should be in the format `hostname:port`.
     /// For example, `localhost:4001`.
     #[must_use]
-    #[allow(clippy::needless_pass_by_value)]
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "impl ToString is idiomatic for builder patterns"
+    )]
     pub fn known_host(mut self, host: impl ToString) -> Self {
         let host_str = host.to_string();
 
@@ -140,7 +143,7 @@ impl RqliteClientBuilder {
             .timeout(std::time::Duration::from_secs(5))
             .default_headers(headers);
 
-        if let Some(config::Scheme::Https) = self.config.scheme {
+        if matches!(self.config.scheme, Some(config::Scheme::Https)) {
             client = client.https_only(true);
         }
 
@@ -158,15 +161,19 @@ impl RqliteClient {
         mut options: RequestOptions,
     ) -> Result<reqwest::Response, RequestError> {
         let (mut host, host_count) = {
-            let hosts = self.hosts.read().unwrap();
-            (hosts[0].clone(), hosts.len())
+            let hosts = self
+                .hosts
+                .read()
+                .map_err(|_poisoned| RequestError::LockPoisoned)?;
+            let first_host = hosts.first().ok_or(RequestError::NoAvailableHosts)?;
+            (first_host.clone(), hosts.len())
         };
 
         let retry_count = self.config.fallback_count.count(host_count);
 
         if let Some(default_params) = &self.config.default_query_params {
             options.merge_default_query_params(default_params);
-        };
+        }
 
         for _ in 0..retry_count {
             tracing::debug!("Trying host: {host}");
@@ -202,13 +209,16 @@ impl RqliteClient {
     ) -> Result<(), RequestError> {
         if e.is_connect() || e.is_timeout() {
             let previous_host = host.clone();
-            let mut writable_hosts = self.hosts.write().unwrap();
+            let mut writable_hosts = self
+                .hosts
+                .write()
+                .map_err(|_poisoned| RequestError::LockPoisoned)?;
 
             let new_host = self
                 .config
                 .fallback_strategy
                 .write()
-                .unwrap()
+                .map_err(|_poisoned| RequestError::LockPoisoned)?
                 .fallback(&mut writable_hosts, host, self.config.fallback_persistence)
                 .ok_or(RequestError::NoAvailableHosts)?;
 
@@ -455,17 +465,13 @@ impl RqliteClient {
     /// Checks if the rqlite cluster is ready.
     /// Returns `true` if the cluster is ready, otherwise `false`.
     pub async fn ready(&self) -> bool {
-        match self
-            .try_request(RequestOptions {
-                endpoint: "readyz".to_string(),
-                method: reqwest::Method::GET,
-                ..Default::default()
-            })
-            .await
-        {
-            Ok(res) => res.status() == reqwest::StatusCode::OK,
-            Err(_) => false,
-        }
+        self.try_request(RequestOptions {
+            endpoint: "readyz".to_string(),
+            method: reqwest::Method::GET,
+            ..Default::default()
+        })
+        .await
+        .is_ok_and(|res| res.status() == reqwest::StatusCode::OK)
     }
 
     /// Retrieves the nodes in the rqlite cluster.
@@ -639,9 +645,11 @@ mod tests {
             .build()
             .unwrap();
 
-        let mut fallback_strategy = client.config.fallback_strategy.write().unwrap();
-
-        assert!(fallback_strategy
+        assert!(client
+            .config
+            .fallback_strategy
+            .write()
+            .unwrap()
             .fallback(
                 &mut vec!["localhost:4001".to_string(), "localhost:4002".to_string()],
                 "localhost:4001",

@@ -17,8 +17,8 @@ impl Row {
         columns: &Arc<Vec<Column>>,
         column_names: &Arc<HashMap<String, usize>>,
         values: Box<[Value]>,
-    ) -> Row {
-        Row {
+    ) -> Self {
+        Self {
             values,
             columns: Arc::clone(columns),
             column_names: Arc::clone(column_names),
@@ -26,12 +26,12 @@ impl Row {
     }
 
     #[must_use]
-    pub fn columns(&self) -> &Arc<Vec<Column>> {
+    pub const fn columns(&self) -> &Arc<Vec<Column>> {
         &self.columns
     }
 
     #[must_use]
-    pub fn column_names(&self) -> &Arc<HashMap<String, usize>> {
+    pub const fn column_names(&self) -> &Arc<HashMap<String, usize>> {
         &self.column_names
     }
 
@@ -281,7 +281,7 @@ mod tests {
 
         impl FromRow for Test {
             fn from_row(row: Row) -> Result<Self, IntoTypedError> {
-                Ok(Test {
+                Ok(Self {
                     id: row.get("id")?,
                     name: row.get("name")?,
                 })

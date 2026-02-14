@@ -1,8 +1,10 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("lib.md")]
-#![warn(clippy::pedantic, clippy::all)]
-#![allow(clippy::module_name_repetitions, clippy::similar_names)]
-
+#![allow(
+    clippy::module_name_repetitions,
+    clippy::similar_names,
+    reason = "common patterns in this crate"
+)]
 pub mod client;
 pub mod query;
 pub mod query_result;

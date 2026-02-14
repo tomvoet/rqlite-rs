@@ -20,7 +20,7 @@ impl RqliteClientConfigBuilder {
         self
     }
 
-    pub(crate) fn scheme(mut self, scheme: Scheme) -> Self {
+    pub(crate) const fn scheme(mut self, scheme: Scheme) -> Self {
         self.scheme = Some(scheme);
         self
     }
@@ -30,12 +30,12 @@ impl RqliteClientConfigBuilder {
         self
     }
 
-    pub(crate) fn fallback_count(mut self, count: FallbackCount) -> Self {
+    pub(crate) const fn fallback_count(mut self, count: FallbackCount) -> Self {
         self.fallback_count = Some(count);
         self
     }
 
-    pub(crate) fn fallback_persistence(mut self, persistence: bool) -> Self {
+    pub(crate) const fn fallback_persistence(mut self, persistence: bool) -> Self {
         self.fallback_persistence = persistence;
         self
     }
@@ -89,8 +89,8 @@ pub enum Scheme {
 impl std::fmt::Display for Scheme {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Scheme::Http => write!(f, "http"),
-            Scheme::Https => write!(f, "https"),
+            Self::Http => write!(f, "http"),
+            Self::Https => write!(f, "https"),
         }
     }
 }
@@ -136,9 +136,10 @@ mod tests {
             ]))
             .build();
 
-        let mut fallback_strategy = config.fallback_strategy.write().unwrap();
-
-        assert!(fallback_strategy
+        assert!(config
+            .fallback_strategy
+            .write()
+            .unwrap()
             .fallback(
                 &mut vec!["localhost:4001".to_string(), "localhost:4002".to_string()],
                 "localhost:4001",

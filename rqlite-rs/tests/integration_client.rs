@@ -158,7 +158,6 @@ async fn integration_fetch_typed_tuple() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn integration_transaction() {
     //let client = common::get_client_and_reset_db().await;
     //

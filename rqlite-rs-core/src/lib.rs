@@ -1,5 +1,4 @@
 #![warn(clippy::pedantic, clippy::all)]
-#![allow(clippy::module_name_repetitions)]
 
 mod column;
 pub mod decode;
@@ -14,7 +13,7 @@ pub use into_typed_rows::IntoTypedRows;
 pub use row::Row;
 
 mod prelude {
-    #![allow(unused_imports)]
+    #![allow(unused_imports, reason = "re-exporting for prelude use")]
     pub use crate::column::Column;
     pub use crate::from_row::FromRow;
     pub use crate::into_typed_rows::IntoTypedRows;

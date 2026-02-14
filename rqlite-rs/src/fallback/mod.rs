@@ -23,14 +23,15 @@ pub enum FallbackCount {
 impl FallbackCount {
     pub(crate) fn count(&self, hosts: usize) -> usize {
         match self {
-            FallbackCount::NumHosts => hosts,
-            FallbackCount::None => 0,
-            FallbackCount::Count(count) => *count,
-            FallbackCount::Percentage(percentage) => {
-                #[allow(
+            Self::NumHosts => hosts,
+            Self::None => 0,
+            Self::Count(count) => *count,
+            Self::Percentage(percentage) => {
+                #[expect(
                     clippy::cast_sign_loss,
                     clippy::cast_possible_truncation,
-                    clippy::cast_precision_loss
+                    clippy::cast_precision_loss,
+                    reason = "percentage calculation with controlled input values"
                 )]
                 let count = (hosts as f64 * (f64::from(*percentage) / 100.0)).ceil() as usize;
                 if count > hosts {
@@ -39,7 +40,7 @@ impl FallbackCount {
                     count
                 }
             }
-            FallbackCount::Infinite => usize::MAX,
+            Self::Infinite => usize::MAX,
         }
     }
 }
