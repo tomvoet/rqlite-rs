@@ -6,7 +6,7 @@ version = "0.0.0"
 
 [dev-dependencies]
 rqlite-rs = { path = "../rqlite-rs", features = ["random-fallback"] }
-tokio = { version = "1.40.0", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.49.0", features = ["rt-multi-thread", "macros"] }
 tracing-subscriber = "0.3"
 anyhow = "1.0.90"
 
