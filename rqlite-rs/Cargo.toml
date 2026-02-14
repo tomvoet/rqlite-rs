@@ -20,7 +20,7 @@ workspace = true
 default = ["macros", "native-tls"]
 
 native-tls = ["reqwest/native-tls"]
-rustls-tls = ["reqwest/rustls-tls"]
+rustls-tls = ["reqwest/rustls"]
 
 macros = ["rqlite-rs-macros"]
 fast-blob = ["rqlite-rs-core/fast-blob", "rqlite-rs-macros/fast-blob"]
@@ -29,8 +29,8 @@ random-fallback = ["nanorand"]
 [dependencies]
 rqlite-rs-macros = { version = "0.3.2", path = "../rqlite-rs-macros", optional = true }
 rqlite-rs-core = { version = "0.3.2", path = "../rqlite-rs-core" }
-reqwest = { version = "0.12", default-features = false }
-nanorand = { version = "0.7", optional = true }
+reqwest = { version = "0.13", default-features = false, features = ["query"] }
+nanorand = { version = "0.8", optional = true }
 tracing = "0.1"
 base64.workspace = true
 serde.workspace = true
@@ -40,4 +40,4 @@ thiserror.workspace = true
 [dev-dependencies]
 tokio = "1"
 axum = { version = "0.8", features = ["macros"] }
-axum-test = "17"
+axum-test = "18"
