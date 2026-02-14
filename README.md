@@ -25,7 +25,7 @@ Add to your `Cargo.toml`:
 ```diff
 [dependencies]
 ...
-+ rqlite-rs = "0.6.1"
++ rqlite-rs = "0.6.2"
 ```
 
 ## Quick Start
