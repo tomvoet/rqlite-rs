@@ -55,9 +55,9 @@ impl FallbackStrategy for Priority {
 
         if persist {
             hosts.swap(0, next_index);
-            Some(&hosts[0])
+            hosts.first()
         } else {
-            Some(&hosts[next_index])
+            hosts.get(next_index)
         }
     }
 }

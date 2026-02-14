@@ -27,10 +27,11 @@ impl FallbackCount {
             Self::None => 0,
             Self::Count(count) => *count,
             Self::Percentage(percentage) => {
-                #[allow(
+                #[expect(
                     clippy::cast_sign_loss,
                     clippy::cast_possible_truncation,
-                    clippy::cast_precision_loss
+                    clippy::cast_precision_loss,
+                    reason = "percentage calculation with controlled input values"
                 )]
                 let count = (hosts as f64 * (f64::from(*percentage) / 100.0)).ceil() as usize;
                 if count > hosts {

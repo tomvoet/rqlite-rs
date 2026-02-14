@@ -70,10 +70,7 @@ impl RequestQueryParam {
 
     fn is_same_key(&self, other: &Self) -> bool {
         match (self, other) {
-            (
-                Self::Bool(k1) | Self::KV(k1, _),
-                Self::Bool(k2) | Self::KV(k2, _),
-            ) => k1 == k2,
+            (Self::Bool(k1) | Self::KV(k1, _), Self::Bool(k2) | Self::KV(k2, _)) => k1 == k2,
         }
     }
 }
@@ -104,7 +101,6 @@ impl RequestQueryParams {
     }
 }
 
-#[allow(dead_code)]
 pub enum RqliteFreshnessLevel {
     None,
     Weak,
@@ -154,16 +150,10 @@ impl RqliteQueryParam {
             Self::Timings => RequestQueryParam::Bool("timings".to_string()),
             Self::Transaction => RequestQueryParam::Bool("transaction".to_string()),
             Self::Queue => RequestQueryParam::Bool("queue".to_string()),
-            Self::Timeout(t) => {
-                RequestQueryParam::KV("timeout".to_string(), format!("{t}s"))
-            }
+            Self::Timeout(t) => RequestQueryParam::KV("timeout".to_string(), format!("{t}s")),
             Self::Level(l) => RequestQueryParam::KV("level".to_string(), l.to_string()),
-            Self::Freshness(f) => {
-                RequestQueryParam::KV("freshness".to_string(), format!("{f}s"))
-            }
-            Self::FreshnessStrict => {
-                RequestQueryParam::Bool("freshness_strict".to_string())
-            }
+            Self::Freshness(f) => RequestQueryParam::KV("freshness".to_string(), format!("{f}s")),
+            Self::FreshnessStrict => RequestQueryParam::Bool("freshness_strict".to_string()),
             Self::NoRWRandom => RequestQueryParam::Bool("norwrandom".to_string()),
             Self::Ver(v) => RequestQueryParam::KV("ver".to_string(), v),
             Self::BlobArray => RequestQueryParam::Bool("blob_array".to_string()),
@@ -174,7 +164,13 @@ impl RqliteQueryParam {
 #[derive(Default)]
 pub(crate) struct RqliteQueryParams(Vec<RqliteQueryParam>);
 
-#[allow(dead_code)]
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "builder pattern for query params - not all params will be used in tests"
+    )
+)]
 impl RqliteQueryParams {
     pub const fn new() -> Self {
         Self(Vec::new())

@@ -54,7 +54,10 @@ impl RqliteClientBuilder {
     /// The host should be in the format `hostname:port`.
     /// For example, `localhost:4001`.
     #[must_use]
-    #[allow(clippy::needless_pass_by_value)]
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "impl ToString is idiomatic for builder patterns"
+    )]
     pub fn known_host(mut self, host: impl ToString) -> Self {
         let host_str = host.to_string();
 
@@ -158,8 +161,12 @@ impl RqliteClient {
         mut options: RequestOptions,
     ) -> Result<reqwest::Response, RequestError> {
         let (mut host, host_count) = {
-            let hosts = self.hosts.read().unwrap();
-            (hosts[0].clone(), hosts.len())
+            let hosts = self
+                .hosts
+                .read()
+                .map_err(|_poisoned| RequestError::LockPoisoned)?;
+            let first_host = hosts.first().ok_or(RequestError::NoAvailableHosts)?;
+            (first_host.clone(), hosts.len())
         };
 
         let retry_count = self.config.fallback_count.count(host_count);
@@ -202,13 +209,16 @@ impl RqliteClient {
     ) -> Result<(), RequestError> {
         if e.is_connect() || e.is_timeout() {
             let previous_host = host.clone();
-            let mut writable_hosts = self.hosts.write().unwrap();
+            let mut writable_hosts = self
+                .hosts
+                .write()
+                .map_err(|_poisoned| RequestError::LockPoisoned)?;
 
             let new_host = self
                 .config
                 .fallback_strategy
                 .write()
-                .unwrap()
+                .map_err(|_poisoned| RequestError::LockPoisoned)?
                 .fallback(&mut writable_hosts, host, self.config.fallback_persistence)
                 .ok_or(RequestError::NoAvailableHosts)?;
 
@@ -635,9 +645,11 @@ mod tests {
             .build()
             .unwrap();
 
-        let mut fallback_strategy = client.config.fallback_strategy.write().unwrap();
-
-        assert!(fallback_strategy
+        assert!(client
+            .config
+            .fallback_strategy
+            .write()
+            .unwrap()
             .fallback(
                 &mut vec!["localhost:4001".to_string(), "localhost:4002".to_string()],
                 "localhost:4001",

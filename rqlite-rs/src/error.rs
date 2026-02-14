@@ -63,6 +63,9 @@ pub enum RequestError {
     /// Unauthorized access to the rqlite cluster.
     #[error("Unauthorized Access")]
     Unauthorized,
+    /// A lock was poisoned.
+    #[error("Lock Poisoned")]
+    LockPoisoned,
 }
 
 // This is a conversion from the `Infallible` type to the `RequestError` type.

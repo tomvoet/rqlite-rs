@@ -24,7 +24,7 @@ impl Random {
     }
 
     #[must_use]
-    pub fn new_seed(seed: u64) -> Self {
+    pub const fn new_seed(seed: u64) -> Self {
         Self {
             rng: nanorand::WyRand::new_seed(seed),
         }
@@ -38,12 +38,15 @@ impl FallbackStrategy for Random {
         _current_host: &str,
         persist: bool,
     ) -> Option<&'a String> {
+        if hosts.is_empty() {
+            return None;
+        }
         let index = self.rng.generate_range(0..hosts.len());
         if persist {
             hosts.swap(0, index);
-            Some(&hosts[0])
+            hosts.first()
         } else {
-            Some(&hosts[index])
+            hosts.get(index)
         }
     }
 }

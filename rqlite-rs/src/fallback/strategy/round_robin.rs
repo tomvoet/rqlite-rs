@@ -21,11 +21,11 @@ impl FallbackStrategy for RoundRobin {
     ) -> Option<&'a String> {
         if persist {
             Self::shift_hosts(hosts);
-            Some(&hosts[0])
+            hosts.first()
         } else {
             let index = hosts.iter().position(|host| host == current_host)?;
             let next_index = (index + 1) % hosts.len();
-            Some(&hosts[next_index])
+            hosts.get(next_index)
         }
     }
 }

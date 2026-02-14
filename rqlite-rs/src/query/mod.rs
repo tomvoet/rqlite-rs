@@ -195,8 +195,6 @@ macro_rules! query {
     ( $query:expr, $( $args:expr ),* ) => {{
         'blk: {
             let Ok(query) = ($crate::query!($query)) else {
-                // This is not unreachable.
-                #[allow(unreachable_code)]
                 break 'blk Err($crate::error::QueryBuilderError::InvalidQuery($query.to_string()));
             };
 

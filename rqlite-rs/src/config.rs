@@ -136,9 +136,10 @@ mod tests {
             ]))
             .build();
 
-        let mut fallback_strategy = config.fallback_strategy.write().unwrap();
-
-        assert!(fallback_strategy
+        assert!(config
+            .fallback_strategy
+            .write()
+            .unwrap()
             .fallback(
                 &mut vec!["localhost:4001".to_string(), "localhost:4002".to_string()],
                 "localhost:4001",
