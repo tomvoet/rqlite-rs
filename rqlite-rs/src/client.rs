@@ -59,7 +59,7 @@ impl RqliteClientBuilder {
         let host_str = host.to_string();
 
         if self.hosts.iter().any(|h| h == &host_str) {
-            eprintln!("Host {host_str} already exists");
+            tracing::warn!("Host {host_str} already exists");
         } else {
             self.hosts.push(host_str);
         }
@@ -169,7 +169,7 @@ impl RqliteClient {
         };
 
         for _ in 0..retry_count {
-            println!("Trying host: {host}");
+            tracing::debug!("Trying host: {host}");
             let req = options.to_reqwest_request(&self.client, host.as_str(), &self.config.scheme);
 
             match req.send().await {
@@ -213,7 +213,7 @@ impl RqliteClient {
                 .ok_or(RequestError::NoAvailableHosts)?;
 
             host.clone_from(new_host);
-            println!("Connection to {} failed, trying {}", previous_host, *host);
+            tracing::info!("Connection to {} failed, trying {}", previous_host, *host);
             Ok(())
         } else {
             Err(RequestError::SwitchoverWrongError(e.to_string()))

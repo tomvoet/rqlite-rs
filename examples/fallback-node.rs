@@ -2,6 +2,8 @@ use rqlite_rs::prelude::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt::init();
+
     let client = RqliteClientBuilder::new()
         .known_host("localhost:4002")
         .known_host("localhost:4001")
